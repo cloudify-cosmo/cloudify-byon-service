@@ -1,0 +1,32 @@
+# Example BYON config yaml.
+# Currently only auth data is configured, by may be extended to store some additional (meta)data (ex. tags).
+
+# You can provide defaults for all fields other than address; 
+# defaults will be used if a given parameter is not explicitly specified for host.
+default:
+    auth:
+        username: ubuntu
+        password: pass
+
+# List of BYON hosts.
+# For each host you need to specify exactly one of: address, iprange (for multiple machines defined by CIDR)
+hosts:
+    # box with custom config accessed by hostname and ssh key
+    - address: mybox123
+      auth:
+          username: ubuntu
+          keyfile: /home/ubuntu/.ssh/key1.pem
+
+    # box with default config 
+    - address: 192.168.100.1
+
+    # 4 boxes defined by CIDR (mask) using custom config
+    # machines specified using CIDR notation must share configuration
+    - ip_range: 192.168.101.16/30
+      auth:
+          username: ubuntu
+          password: pass2
+
+# Question: do we need separate hostname and ip instead of address?
+# Pros: easier / better validation?
+# Cons: most API calls don't care, so why should we? also you can guess which one is it by regexp, etc.

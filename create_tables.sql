@@ -4,7 +4,7 @@ CREATE TABLE "auth" (
     "port" INT,
     "password" TEXT,
     "keyfile" TEXT
-)
+);
 
 CREATE TABLE "node" (
     "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -13,9 +13,14 @@ CREATE TABLE "node" (
     "status" INTEGER,
     FOREIGN KEY("auth") REFERENCES "auth"("id"),
     FOREIGN KEY("status") REFERENCES "status"("id")
-)
+);
 
 CREATE TABLE "status" (
     "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     "status" TEXT NOT NULL
-)
+);
+
+INSERT INTO "status" ("status") VALUES ("active");
+INSERT INTO "status" ("status") VALUES ("reserved");
+INSERT INTO "status" ("status") VALUES ("in_use");
+INSERT INTO "status" ("status") VALUES ("inactive");
