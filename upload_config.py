@@ -1,89 +1,63 @@
 import yaml
-import sqlite3
 import struct
 import socket
+from db_wrapper import db
 
 
+def load_config(file_name):
+    with open(file_name, 'r') as config_file:
+        config = yaml.load(config_file)
+    default = config.get('default')
+    if default is not None:
+        default_auth = default.get('auth')
+        if default_auth is not None:
+            db.add_default_auth(default_auth)
+    add_servers(config.get('hosts'))
 
-
-# add port
-def add_auth(auth):
-    if auth is None:
-        return None
-    conn = open_db_connection()
-    c = conn.cursor()
-    c.execute('INSERT INTO auth (username, password, keyfile) VALUES (?,?,?)',
-              (auth.get('username'),
-               auth.get('password'),
-               auth.get('keyfile')))
-    auth_id = c.lastrowid
-    conn.commit()
-    conn.close()
-    return auth_id
-
-def show_auths():
-    conn = open_db_connection()
-    c = conn.cursor()
-    c.execute('SELECT * FROM auth')
-    res = c.fetchall()
-    conn.close()
-    return res
-
-def show_hosts():
-    conn = open_db_connection()
-    c = conn.cursor()
-    c.execute('SELECT * FROM node')
-    res = c.fetchall()
-    conn.close()
-    return res
-
-def add_hosts(hosts, default_auth_id):
-    conn = sqlite3.connect('test_sqlite')
-    c = conn.cursor()
-    for h in hosts:
-        if h.get('address') is not None:
-            address = h.get('address')
-            if h.get('auth') is not None:
-                auth = add_auth(h.get('auth'))
-            else:
-                auth = default_auth_id
-            c.execute('SELECT id from status where status=\"inactive\"')
-            status, = c.fetchone()
-            c.execute('INSERT INTO node (address, auth, status) VALUES (?,?,?)', (address, auth, status))
-        if h.get('ip_range') is not None:
-            subnet, mask = get_subnet_and_mask(h.get('ip_range'))
-            h_list = add_subnet_hosts(subnet, mask, conn)
-    conn.commit()
-    conn.close()
 
 def ip2long(ip):
     return struct.unpack('!L', socket.inet_aton(ip))[0]
 
+
 def long2ip(num):
-    return socket.inet_ntoa(struct.pack('!L',num))
+    return socket.inet_ntoa(struct.pack('!L', num))
+
 
 def get_ibitmask(mask):
-    return (2L << (31-mask)) - 1
+    return (2L << (31-int(mask))) - 1
+
 
 def get_broadcast_long(subnet, mask):
     s = ip2long(subnet)
     m = get_ibitmask(int(mask))
     return s | m
 
+
 def get_subnet_and_mask(ip_range):
     s, m = ip_range.split('/')
     return s, m
 
-def add_subnet_hosts(subnet, mask, conn):
+#TODO: optimize, possible solutions: insert to db in a loop (no creating large list) or create generator
+def add_subnet_hosts(subnet, mask):
+    servers_list = []
+    bin_sub = ip2long(subnet)
+    bin_imask = get_ibitmask(mask)
+    bin_broadcast = bin_sub | bin_imask
+    for address in range(bin_sub, bin_broadcast):
+        servers_list.append(long2ip(address))
+    return servers_list
 
 
-config_file = open("byon.yaml", 'r')
-config = yaml.load(config_file)
-print "Config: "
-print config
-print config.get('default')
-default_auth_id = add_auth(config['default']['auth'])
-add_hosts(config['hosts'], default_auth_id)
-print "All auths: " + str(show_auths())
-print "All hosts: " + str(show_hosts())
-
+def add_servers(servers):
+    for server in servers:
+        if server.get('address') is not None:
+            db.add_server(server)
+        elif server.get('ip_range') is not None:
+            subnet, mask = get_subnet_and_mask(server.get('ip_range'))
+            servers_list = add_subnet_hosts(subnet, mask)
+            for server_ip in servers_list:
+                if server.get('auth') is None:
+                    server['auth'] = db.default_auth
+                s = {'address': server_ip, 'auth': server['auth']}
+                db.add_server(s)
+        #TODO: add else -> if sth else config is wrong

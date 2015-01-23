@@ -1,49 +1,21 @@
 #!byonvenv/bin/python
 from flask import Flask
-import sqlite3
-import yaml
+from flask import jsonify
+from db_wrapper import db
 
 app = Flask(__name__)
 
-def get_db_cursor():
-    conn = sqlite3.connect('test_sqlite')
-    conn.row_factory = dict_factory
-    return conn.cursor(), conn
-
-def dict_factory(cursor, row):
-    d = {}
-    for idx, col in enumerate(cursor.description):
-        if col[0] in ('username', 'keyfile', 'port', 'password'):
-            if d.get('auth') is None:
-                d['auth'] = {}
-            d['auth'][col[0]] = row[idx]
-        else:
-            d[col[0]] = row[idx]
-    return d
-
-@app.route('/servers/list', methods=['GET'])
+@app.route('/servers', methods=['GET'])
 def list_hosts():
-    c, conn = get_db_cursor()
-    c.execute("SELECT address, S.status, A.username, A.keyfile, A.password FROM node as N JOIN status as S on N.status=S.id JOIN auth as A on A.id = N.auth")
-    results = c.fetchall()
-    conn.close()
-    return yaml.safe_dump(results)
+    return jsonify(servers=db.get_servers())
 
-@app.route('/servers/list/<status>', methods=['GET'])
-def list_filtered_hosts(status):
-    c, conn = get_db_cursor()
-    c.execute("SELECT address, S.status, A.username, A.keyfile, A.password FROM node as N JOIN status as S on N.status=S.id JOIN auth as A on A.id = N.auth WHERE S.status=?", (status,))
-    results = c.fetchall()
-    conn.close()
-    return yaml.safe_dump(results)
-
-@app.route('/servers/take/<number>', methods=['POST'])
-def take_servers(number):
+@app.route('/servers', methods=['POST'])
+def aquire_server():
     #do the magic
-    return str(number) +  yaml.dump(hosts)
+    return ""
 
-@app.route('/servers/release', methods=['POST'])
-def release_servers():
+@app.route('/servers/', methods=['POST'])
+def release_server():
     #do the other magic
     return "Release"
 
