@@ -2,7 +2,9 @@
 from flask import Flask
 from flask import jsonify
 from db_wrapper import db
+from upload_config import load_config
 
+load_config('byon.yaml')
 app = Flask(__name__)
 
 @app.route('/servers', methods=['GET'])
