@@ -36,8 +36,8 @@ class DBinterface(object):
         """Delete server from database using its acquisition id"""
 
     @abc.abstractmethod
-    def change_server_status(self, server_global_id, status_from, status_to):
-        """Change server status in database from status from to status to"""
+    def change_server_status(self, server_global_id, reserved, living):
+        """Change server status in database for reserved and living fields"""
 
     @abc.abstractmethod
     def acquire_server(self):
