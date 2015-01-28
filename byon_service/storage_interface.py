@@ -15,25 +15,16 @@
 import abc
 
 
-class DBinterface(object):
+class StorageInterface(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def set_default_auth(self, auth):
-        """Set default auth(dictionary) with
-           credentials(username and password or keyfile) set in config"""
-
-    @abc.abstractmethod
-    def get_servers(self):
-        """Return all servers in database"""
+    def list_servers(self):
+        """Return all servers in database that are allocated"""
 
     @abc.abstractmethod
     def add_server(self, server):
         """Add server(dictionary) to database"""
-
-    @abc.abstractmethod
-    def delete_server(self, server_id):
-        """Delete server from database using its acquisition id"""
 
     @abc.abstractmethod
     def change_server_status(self, server_global_id, reserved, living):
@@ -46,4 +37,4 @@ class DBinterface(object):
 
     @abc.abstractmethod
     def get_server(self, server_id):
-        """Get specific server identified by given id'"""
+        """Get specific server identified by given allocation id(server_id)'"""
