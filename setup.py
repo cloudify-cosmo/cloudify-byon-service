@@ -19,5 +19,6 @@ setup(
     version='1.0',
     packages=['byon_service'],
     license='LICENSE',
-    description='Cloudify Bring Your Own Node Service'
+    description='Cloudify Bring Your Own Node Service',
+    requires=['flask', 'flask_restful']
 )
