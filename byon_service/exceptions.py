@@ -14,14 +14,27 @@
 # * limitations under the License.
 
 
-class NoResourcesError(Exception):
+class ByonHTTPException(Exception):
+    """  An error raised by service modules to handle errors in REST API"""
+
+    def get_code(self):
+        pass
+
+    def to_dict(self):
+        pass
+
+    def __str__(self):
+        pass
+
+
+class NoResourcesError(ByonHTTPException):
     """Raised when there is no servers left to be acquired"""
 
     def __init__(self):
         self.status_code = 515
         self.text = "Cannot acquire server. " \
                     "The pool is empty or all servers are in use."
-        super(NoResourcesError, self).__init__(self.text)
+        super(NoResourcesError, self).__init__(self.__str__)
 
     def get_code(self):
         return self.status_code
@@ -33,14 +46,14 @@ class NoResourcesError(Exception):
         return repr(self.text)
 
 
-class NotFoundError(Exception):
+class NotFoundError(ByonHTTPException):
     """Raised when there is no server with requested id"""
 
     def __init__(self, server_id):
         self.status_code = 404
         self.text = "Cannot find requested server. "
         self.server_id = server_id
-        super(NotFoundError, self).__init__(self.text)
+        super(NotFoundError, self).__init__(self.__str__)
 
     def get_code(self):
         return self.status_code

@@ -22,22 +22,23 @@ app = Flask(__name__)
 api = Api(app)
 
 
-#@app.errorhandler(byon_service.exceptions.NotFoundError)
-@app.errorhandler(byon_service.exceptions.NoResourcesError)
+@app.errorhandler(byon_service.exceptions.ByonHTTPException)
 def handle_byon_errors(error):
     response = jsonify(error.to_dict())
     response.status_code = error.get_code()
     return response
 
 
-@app.route('/servers/', methods=['GET'])
+@app.route('/servers', methods=['GET'])
 def list_servers():
+    """ List allocated servers"""
     server = {'function': 'list_servers'}
-    return jsonify(server), httplib.OK
+    return jsonify(server), httplib.NOT_FOUND
 
 
-@app.route('/servers/', methods=['POST'])
+@app.route('/servers', methods=['POST'])
 def acquire_servers():
+    """ Acquire(allocate) the server """
     server = {'function': 'acquire_server'}
     # do the magic
     # use method raising NoResourcesException if there is no such
@@ -56,13 +57,10 @@ def release_server(server_id):
 @app.route('/servers/<server_id>', methods=['GET'])
 def get_server(server_id):
     """Get the details of the server with the given server_id"""
-    try:
-        server = {'function': 'get_server', 'server': server_id}
-        # use method raising NotFoundError if there is no such server assigned
-        raise byon_service.exceptions.NotFoundError(server_id)
-        return jsonify(server), httplib.OK
-    except byon_service.exceptions.NotFoundError as e:
-        return jsonify(e.to_dict()), e.get_code()
+    server = {'function': 'get_server', 'server': server_id}
+     # use method raising NotFoundError if there is no such server assigned
+    raise byon_service.exceptions.NotFoundError(server_id)
+    return jsonify(server), httplib.OK
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
