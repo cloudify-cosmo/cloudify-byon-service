@@ -20,7 +20,7 @@ class AbstractStorage(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def list_servers(self, **kwargs):
+    def get_servers(self, **kwargs):
         """ Return all servers in database filtered by given fields
         if no kwargs(filters) given, return all servers"""
 
