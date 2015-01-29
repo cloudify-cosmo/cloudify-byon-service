@@ -15,26 +15,29 @@
 import abc
 
 
-class StorageInterface(object):
+class AbstractStorage(object):
+    """ Interface for storage transactional operations """
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def list_servers(self):
-        """Return all servers in database that are allocated"""
+    def list_servers(self, **kwargs):
+        """ Return all servers in database filtered by given fields
+        if no kwargs(filters) given, return all servers"""
 
     @abc.abstractmethod
     def add_server(self, server):
-        """Add server(dictionary) to database"""
+        """ Add server(dictionary) to database"""
 
     @abc.abstractmethod
-    def change_server_status(self, server_global_id, reserved, living):
-        """Change server status in database for reserved and living fields"""
+    def update_server(self, server, **kwargs):
+        """ Update server in storage for given fields,
+        return False if no change occurred, True otherwise"""
 
     @abc.abstractmethod
-    def acquire_server(self):
-        """Return first active server(dictionary)
-           and change its status to 'reserved'"""
+    def reserve_server(self, server):
+        """ Return first active server(dictionary) and change its status
+        to 'reserved'."""
 
     @abc.abstractmethod
-    def get_server(self, server_id):
-        """Get specific server identified by given allocation id(server_id)'"""
+    def get_server(self, **kwargs):
+        """ Return data of specific server identified by given field"""
