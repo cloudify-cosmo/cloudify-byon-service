@@ -44,9 +44,8 @@ class SQLiteStorage(AbstractStorage):
         values = tuple(kwargs.itervalues())
         sql_part = ""
         for column in kwargs.iterkeys():
-            print column
             sql_part += '{0}=? AND '.format(column)
-        sql_part = sql_part[:-4]  # remove last AND
+        sql_part = sql_part[:-4]  # remove last "AND "
         return sql_part, values
 
     def get_servers(self, **kwargs):
@@ -84,7 +83,11 @@ class SQLiteStorage(AbstractStorage):
     def update_server(self, server, **kwargs):
         with sqlite3.connect(self.filename) as conn:
             cursor = conn.cursor()
-            sql_part, values = self._get_sql_and_values_from_kwargs(**kwargs)
+            values = tuple(kwargs.itervalues())
+            sql_part = ""
+            for column in kwargs.iterkeys():
+                sql_part += '{0}=?, '.format(column)
+            sql_part = sql_part[:-2]  # remove last ", "
             cursor.execute('UPDATE servers SET ' + sql_part +
                            'WHERE server_global_id=?',
                            values + (server['server_global_id'],))
