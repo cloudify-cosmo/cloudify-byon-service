@@ -94,6 +94,7 @@ class SQLiteStorage(AbstractStorage):
                            values + (server['server_global_id'],))
             if cursor.rowcount == 0:
                 return False
+            conn.commit()
             cursor.execute('SELECT * FROM servers WHERE server_global_id=?',
                            (server['server_global_id'],))
             return cursor.fetchone()
@@ -111,6 +112,8 @@ class SQLiteStorage(AbstractStorage):
     def reserve_server(self, server):
         with sqlite3.connect(self.filename) as conn:
             conn.row_factory = self._dict_factory
+            conn.isolation_level = 'EXCLUSIVE'
+            conn.execute('BEGIN EXCLUSIVE')
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM servers WHERE server_global_id=?',
                            (server['server_global_id'],))
