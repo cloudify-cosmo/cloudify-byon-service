@@ -31,7 +31,8 @@ class AbstractStorage(object):
     @abc.abstractmethod
     def update_server(self, server, **kwargs):
         """ Update server in storage for given fields,
-        return False if no change occurred, True otherwise"""
+        return tuple (False, None) if no change occurred,
+        (True, updated_server) otherwise"""
 
     @abc.abstractmethod
     def reserve_server(self, server):

@@ -39,19 +39,16 @@ def get_subnet_and_mask(ip_range):
     return s, m
 
 
-#TODO: optimize, possible solutions: insert to db in a loop
 def add_subnet_hosts(subnet, mask):
     servers_list = []
     bin_sub = ip2long(subnet)
     bin_imask = get_ibitmask(mask)
     bin_broadcast = bin_sub | bin_imask
     for address in range(bin_sub, bin_broadcast):
-        servers_list.append(long2ip(address))
-    return servers_list
+        yield long2ip(address)
 
 
 def add_servers(servers):
-    global default_auth
     for server in servers:
         if server.get('address') is not None:
             server['alive'] = False
@@ -63,8 +60,8 @@ def add_servers(servers):
             db.add_server(server)
         elif server.get('ip_range') is not None:
             subnet, mask = get_subnet_and_mask(server.get('ip_range'))
-            servers_list = add_subnet_hosts(subnet, mask)
-            for server_ip in servers_list:
+            servers_list_gen = add_subnet_hosts(subnet, mask)
+            for server_ip in servers_list_gen:
                 auth = dict(default_auth)
                 if server.get('auth') is not None:
                     auth = dict(server['auth'])
@@ -74,5 +71,6 @@ def add_servers(servers):
                      'reserved': False}
                 s['port'] = s['auth'].pop('port')
                 db.add_server(s)
-        #TODO: add else -> if sth else config is wrong
+        else:
+            return False # wrong config
 

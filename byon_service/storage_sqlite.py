@@ -18,38 +18,40 @@ from storage_interface import AbstractStorage
 
 
 class SQLiteStorage(AbstractStorage):
+    """ Storage wrapper for SQLite DB implementing AbstractStorage interface"""
+    _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS servers ' \
+                    '(server_global_id integer PRIMARY KEY, server_id text, ' \
+                    'address text, auth text, port integer, alive integer, ' \
+                    'reserved integer)'
+
     def __init__(self, db_filename):
-        self.filename = db_filename
+        self._filename = db_filename
         self._create_table()
 
     def _create_table(self):
-        with sqlite3.connect(self.filename) as conn:
+        with sqlite3.connect(self._filename) as conn:
             cursor = conn.cursor()
-            cursor.execute('CREATE TABLE IF NOT EXISTS servers '
-                           '(server_global_id integer PRIMARY KEY, '
-                           'server_id text, address text, auth text, '
-                           'port integer, alive integer, reserved integer)')
+            cursor.execute(SQLiteStorage._CREATE_TABLE)
 
     def _dict_factory(self, cursor, row):
-        d = dict()
+        """ Create dictionary out of fetched row by db cursor"""
+        d = {}
         for idx, col in enumerate(cursor.description):
             if col[0] == 'auth':
-                auth = row[idx].replace("'", "\"")
-                d[col[0]] = json.loads(auth)
+                # "auth" column value is dictionary serialized to string
+                # -> json.dumps(auth).
+                d[col[0]] = json.loads(row[idx])
             else:
                 d[col[0]] = row[idx]
         return d
 
     def _get_sql_and_values_from_kwargs(self, **kwargs):
         values = tuple(kwargs.itervalues())
-        sql_part = ""
-        for column in kwargs.iterkeys():
-            sql_part += '{0}=? AND '.format(column)
-        sql_part = sql_part[:-4]  # remove last "AND "
+        sql_part = ' AND '.join('{0}=?'.format(k) for k in kwargs)
         return sql_part, values
 
     def get_servers(self, **kwargs):
-        with sqlite3.connect(self.filename) as conn:
+        with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
             if not kwargs:
@@ -63,46 +65,37 @@ class SQLiteStorage(AbstractStorage):
             return list(result)
 
     def add_server(self, server):
-        try:
-            with sqlite3.connect(self.filename) as conn:
-                cursor = conn.cursor()
-                cursor.execute('INSERT INTO servers(server_id, address, auth, '
-                               'port, alive, reserved) '
-                               'VALUES(?, ?, ?, ?, ?, ?)',
-                               (server.get('server_id'),
-                                server['address'],
-                                str(server['auth']),
-                                server['port'],
-                                server['alive'],
-                                server['reserved']))
-                server['server_global_id'] = cursor.lastrowid
-                return server
-        except sqlite3.IntegrityError:
-            print 'Could not add server twice'
+        with sqlite3.connect(self._filename) as conn:
+            cursor = conn.cursor()
+            values = (server.get('server_id'), server['address'],
+                      json.dumps(server['auth']), server['port'],
+                      server['alive'], server['reserved'])
+            cursor.execute('INSERT INTO servers '
+                           '(server_id, address, auth, port, alive, reserved) '
+                           'VALUES(?, ?, ?, ?, ?, ?)', values)
+            server['server_global_id'] = cursor.lastrowid
+            return server
 
     def update_server(self, server, **kwargs):
-        with sqlite3.connect(self.filename) as conn:
+        with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
             values = tuple(kwargs.itervalues())
-            sql_part = ""
-            for column in kwargs.iterkeys():
-                sql_part += '{0}=?, '.format(column)
-            sql_part = sql_part[:-2]  # remove last ", "
+            sql_part = ", ".join('{0}=?'.format(k) for k in kwargs)
             cursor.execute('UPDATE servers SET ' + sql_part +
                            'WHERE server_global_id=?',
                            values + (server['server_global_id'],))
             if cursor.rowcount == 0:
-                return False
+                return False, None
             conn.commit()
             cursor.execute('SELECT * FROM servers WHERE server_global_id=?',
                            (server['server_global_id'],))
-            return cursor.fetchone()
+            return True, cursor.fetchone()
 
     def get_server(self, **kwargs):
         if not kwargs:
-                return None
-        with sqlite3.connect(self.filename) as conn:
+            return None
+        with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
             sql_part, values = self._get_sql_and_values_from_kwargs(**kwargs)
@@ -110,7 +103,7 @@ class SQLiteStorage(AbstractStorage):
             return cursor.fetchone()
 
     def reserve_server(self, server):
-        with sqlite3.connect(self.filename) as conn:
+        with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             conn.isolation_level = 'EXCLUSIVE'
             conn.execute('BEGIN EXCLUSIVE')
@@ -120,7 +113,9 @@ class SQLiteStorage(AbstractStorage):
             result = cursor.fetchone()
             if result['reserved']:
                 return False
-            cursor.execute('UPDATE servers SET reserved=1')
+            cursor.execute('UPDATE servers SET reserved=1 '
+                           'WHERE server_global_id=?',
+                           (server['server_global_id'],))
             return True
 
 db = SQLiteStorage('test.db')
