@@ -46,6 +46,7 @@ class SQLiteStorage(AbstractStorage):
         return d
 
     def _get_sql_and_values_from_kwargs(self, **kwargs):
+        """ Helper method to create sql query """
         values = tuple(kwargs.itervalues())
         sql_part = ' AND '.join('{0}=?'.format(k) for k in kwargs)
         return sql_part, values

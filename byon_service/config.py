@@ -7,6 +7,7 @@ default_auth = None
 
 
 def load_config(file_name):
+    """ Main function loading config from yaml file to the storage """
     with open(file_name, 'r') as config_file:
         config = yaml.load(config_file)
     default = config.get('default')
@@ -39,8 +40,9 @@ def get_subnet_and_mask(ip_range):
     return s, m
 
 
-def add_subnet_hosts(subnet, mask):
-    servers_list = []
+def get_subnet_hosts(subnet, mask):
+    """ Subnet hosts generator.
+    Yields each server address given in ip range  """
     bin_sub = ip2long(subnet)
     bin_imask = get_ibitmask(mask)
     bin_broadcast = bin_sub | bin_imask
@@ -49,6 +51,16 @@ def add_subnet_hosts(subnet, mask):
 
 
 def add_servers(servers):
+    """ Add server to database creating the server structure (dictionary)
+        server = {
+            'address': ip address or hostname,
+            'port': port to communicate to,
+            'auth': a dictionary with 'username' and 'keyfile' or 'password',
+            'alive': flag that will inform if this server has been reachable
+            recently,
+            'reserved': flag informing if this server is to be assigned at the
+            moment
+        }"""
     for server in servers:
         if server.get('address') is not None:
             server['alive'] = False
@@ -60,7 +72,7 @@ def add_servers(servers):
             db.add_server(server)
         elif server.get('ip_range') is not None:
             subnet, mask = get_subnet_and_mask(server.get('ip_range'))
-            servers_list_gen = add_subnet_hosts(subnet, mask)
+            servers_list_gen = get_subnet_hosts(subnet, mask)
             for server_ip in servers_list_gen:
                 auth = dict(default_auth)
                 if server.get('auth') is not None:
@@ -72,5 +84,5 @@ def add_servers(servers):
                 s['port'] = s['auth'].pop('port')
                 db.add_server(s)
         else:
-            return False # wrong config
+            return False  # wrong config
 
