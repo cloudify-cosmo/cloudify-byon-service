@@ -82,6 +82,7 @@ class SQLiteStorage(AbstractStorage):
 
     def update_server(self, server, **kwargs):
         with sqlite3.connect(self.filename) as conn:
+            conn.row_factory = self._dict_factory
             cursor = conn.cursor()
             values = tuple(kwargs.itervalues())
             sql_part = ""
@@ -93,24 +94,30 @@ class SQLiteStorage(AbstractStorage):
                            values + (server['server_global_id'],))
             if cursor.rowcount == 0:
                 return False
-            return True
+            cursor.execute('SELECT * FROM servers WHERE server_global_id=?',
+                           (server['server_global_id'],))
+            return cursor.fetchone()
 
     def get_server(self, **kwargs):
         if not kwargs:
                 return None
         with sqlite3.connect(self.filename) as conn:
-            conn.row_factory = sqlite3.Row
+            conn.row_factory = self._dict_factory
             cursor = conn.cursor()
             sql_part, values = self._get_sql_and_values_from_kwargs(**kwargs)
             cursor.execute('SELECT * FROM servers WHERE ' + sql_part, values)
-            result = cursor.fetchone()
-            return result
+            return cursor.fetchone()
 
     def reserve_server(self, server):
         with sqlite3.connect(self.filename) as conn:
-            conn.row_factory = sqlite3.Row
+            conn.row_factory = self._dict_factory
             cursor = conn.cursor()
-            return {}
-
+            cursor.execute('SELECT * FROM servers WHERE server_global_id=?',
+                           (server['server_global_id'],))
+            result = cursor.fetchone()
+            if result['reserved']:
+                return False
+            cursor.execute('UPDATE servers SET reserved=1')
+            return True
 
 db = SQLiteStorage('test.db')
