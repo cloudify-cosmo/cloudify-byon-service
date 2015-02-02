@@ -1,56 +1,56 @@
 import yaml
 import struct
 import socket
-from storage_sqlite import db
 
 default_auth = None
 
 
-def load_config(file_name):
-    """ Main function loading config from yaml file to the storage """
+def load_config(storage, file_name):
+    """ Main function loading config from yaml file to the storage.
+    Storage is an object of a class implementing AbstractStorage"""
     with open(file_name, 'r') as config_file:
         config = yaml.load(config_file)
     default = config.get('default')
     global default_auth
     if default is not None:
         default_auth = default.get('auth')
-    add_servers(config.get('hosts'))
+    _add_servers(storage, config.get('hosts'))
 
 
-def ip2long(ip):
+def _ip2long(ip):
     return struct.unpack('!L', socket.inet_aton(ip))[0]
 
 
-def long2ip(num):
+def _long2ip(num):
     return socket.inet_ntoa(struct.pack('!L', num))
 
 
-def get_ibitmask(mask):
+def _get_ibitmask(mask):
     return (2L << (31-int(mask))) - 1
 
 
-def get_broadcast_long(subnet, mask):
-    s = ip2long(subnet)
-    m = get_ibitmask(int(mask))
+def _get_broadcast_long(subnet, mask):
+    s = _ip2long(subnet)
+    m = _get_ibitmask(int(mask))
     return s | m
 
 
-def get_subnet_and_mask(ip_range):
+def _get_subnet_and_mask(ip_range):
     s, m = ip_range.split('/')
     return s, m
 
 
-def get_subnet_hosts(subnet, mask):
+def _get_subnet_hosts(subnet, mask):
     """ Subnet hosts generator.
     Yields each server address given in ip range  """
-    bin_sub = ip2long(subnet)
-    bin_imask = get_ibitmask(mask)
+    bin_sub = _ip2long(subnet)
+    bin_imask = _get_ibitmask(mask)
     bin_broadcast = bin_sub | bin_imask
     for address in range(bin_sub, bin_broadcast):
-        yield long2ip(address)
+        yield _long2ip(address)
 
 
-def add_servers(servers):
+def _add_servers(storage, servers):
     """ Add server to database creating the server structure (dictionary)
         server = {
             'address': ip address or hostname,
@@ -68,11 +68,10 @@ def add_servers(servers):
             if server.get('auth') is None:
                 server['auth'] = dict(default_auth)
             server['port'] = server['auth'].pop('port')
-            print server
-            db.add_server(server)
+            storage.add_server(server)
         elif server.get('ip_range') is not None:
-            subnet, mask = get_subnet_and_mask(server.get('ip_range'))
-            servers_list_gen = get_subnet_hosts(subnet, mask)
+            subnet, mask = _get_subnet_and_mask(server.get('ip_range'))
+            servers_list_gen = _get_subnet_hosts(subnet, mask)
             for server_ip in servers_list_gen:
                 auth = dict(default_auth)
                 if server.get('auth') is not None:
@@ -82,7 +81,7 @@ def add_servers(servers):
                      'alive': False,
                      'reserved': False}
                 s['port'] = s['auth'].pop('port')
-                db.add_server(s)
+                storage.add_server(s)
         else:
             return False  # wrong config
 
