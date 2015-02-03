@@ -102,6 +102,9 @@ def _create_socket(struct_getaddrinfo):
 
 
 def _wait_for_any_change(socket_fds):
+    # Connection requsts must be synchronised at some point. This is it.
+    # In future a more asynchronous, request--driven version will be
+    # available.
     select_results = select.select(socket_fds,
                                    socket_fds,
                                    socket_fds,
@@ -124,8 +127,12 @@ def _check_connection(sock):
 
 
 def _scan(endpoints):
-    results = {}
-    sockets = {}
+    results = {}    # results = a dict indexed with a tuple (host, port)
+                    # and containing a bool indicating if the endpoint
+                    # is connectible.
+    sockets = {}    # sockets = a dict indexed with a file descriptor
+                    # and containing *nested* tuples
+                    # (socket object, (host, port)).
     try:
         for host, port in endpoints:
             getaddrinfo_results = socket.getaddrinfo(host,
@@ -161,9 +168,12 @@ def _split(endpoints):
     '''A generator yielding parts of the given endpoint list split
     in such way, that soft maximum open file descriptor resource
     limit **should** not be exceeded.'''
+    # Both FD limit and splitting will be handled more elegantly
+    # in future (after having a working service) - synchronisation,
+    # global FD pool, etc. will be required.
+    limit = _get_file_descriptor_resource_limit()
     i = 0
     while i < len(endpoints):
-        limit = _get_file_descriptor_resource_limit()
         fd_num = _get_number_of_open_file_descriptors()
         beg = i
         l = _MAGIC_NUMBER_SPLIT_LOWER_THRESHOLD
