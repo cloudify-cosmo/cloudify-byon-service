@@ -1,6 +1,7 @@
-import yaml
+import re
 import struct
 import socket
+import yaml
 
 default_auth = None
 
@@ -18,6 +19,7 @@ def load_config(storage, file_name):
 
 
 def _ip2long(ip):
+    # throws socket.error if IP is not valid
     return struct.unpack('!L', socket.inet_aton(ip))[0]
 
 
@@ -36,6 +38,11 @@ def _get_broadcast_long(subnet, mask):
 
 
 def _get_subnet_and_mask(ip_range):
+    # throws socket.error if IP is not valid
+    regex = re.compile("\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}")
+    result = regex.findall(ip_range)
+    if len(result) != 1:
+        raise socket.error("illegal IP address string")
     s, m = ip_range.split('/')
     return s, m
 
