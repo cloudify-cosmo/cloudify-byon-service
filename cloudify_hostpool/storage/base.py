@@ -58,8 +58,8 @@ class AbstractStorage(object):
         :param global_id: The global id of the server.
         :param server: The server dictionary containing the new values.
 
-        :return False if no change occurred, True otherwise.
-        :rtype bool
+        :return (False, None) if no change occurred, (True, server) otherwise.
+        :rtype (bool, dict)
 
         """
         pass
