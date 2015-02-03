@@ -20,7 +20,7 @@ from storage_interface import AbstractStorage
 class SQLiteStorage(AbstractStorage):
     """ Storage wrapper for SQLite DB implementing AbstractStorage interface"""
     _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS servers ' \
-                    '(server_global_id integer PRIMARY KEY, server_id text, ' \
+                    '(global_id integer PRIMARY KEY, server_id text, ' \
                     'address text, auth text, port integer, alive integer, ' \
                     'reserved integer)'
 
@@ -74,23 +74,25 @@ class SQLiteStorage(AbstractStorage):
             cursor.execute('INSERT INTO servers '
                            '(server_id, address, auth, port, alive, reserved) '
                            'VALUES(?, ?, ?, ?, ?, ?)', values)
-            server['server_global_id'] = cursor.lastrowid
+            server['global_id'] = cursor.lastrowid
             return server
 
     def update_server(self, server, **kwargs):
+        if not kwargs:
+            return False, None
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
             values = tuple(kwargs.itervalues())
             sql_part = ", ".join('{0}=?'.format(k) for k in kwargs)
-            cursor.execute('UPDATE servers SET ' + sql_part +
-                           'WHERE server_global_id=?',
-                           values + (server['server_global_id'],))
+            cursor.execute('UPDATE servers SET {0} WHERE global_id=?'
+                           .format(sql_part),
+                           values + (server['global_id'],))
             if cursor.rowcount == 0:
                 return False, None
             conn.commit()
-            cursor.execute('SELECT * FROM servers WHERE server_global_id=?',
-                           (server['server_global_id'],))
+            cursor.execute('SELECT * FROM servers WHERE global_id=?',
+                           (server['global_id'],))
             return True, cursor.fetchone()
 
     def get_server(self, **kwargs):
@@ -109,14 +111,13 @@ class SQLiteStorage(AbstractStorage):
             conn.isolation_level = 'EXCLUSIVE'
             conn.execute('BEGIN EXCLUSIVE')
             cursor = conn.cursor()
-            cursor.execute('SELECT * FROM servers WHERE server_global_id=?',
-                           (server['server_global_id'],))
+            cursor.execute('SELECT * FROM servers WHERE global_id=?',
+                           (server['global_id'],))
             result = cursor.fetchone()
             if result['reserved']:
                 return False
-            cursor.execute('UPDATE servers SET reserved=1 '
-                           'WHERE server_global_id=?',
-                           (server['server_global_id'],))
+            cursor.execute('UPDATE servers SET reserved=1 WHERE global_id=?',
+                           (server['global_id'],))
             return True
 
 db = SQLiteStorage('test.db')
