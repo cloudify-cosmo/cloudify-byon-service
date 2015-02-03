@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
+# Copyright (c) 2014 GigaSpaces Technologies Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,14 +12,8 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
-from setuptools import setup
 
-setup(
-    name='cloudify-hostpool-service',
-    version='1.0',
-    packages=['cloudify_hostpool.config',
-              'cloudify_hostpool.hosts',
-              'cloudify_hostpool.rest',
-              'cloudify_hostpool.storage'],
-    description='Cloudify Host Pool Service'
-)
+"""
+This package is intended for all different configuration implementations.
+
+"""

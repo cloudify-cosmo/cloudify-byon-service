@@ -14,7 +14,7 @@
 # * limitations under the License.
 import json
 import sqlite3
-from storage_interface import AbstractStorage
+from base import AbstractStorage
 
 
 class SQLiteStorage(AbstractStorage):
