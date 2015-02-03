@@ -58,20 +58,20 @@ class AbstractStorage(object):
         :param global_id: The global id of the server.
         :param server: The server dictionary containing the new values.
 
-        :return (False, None) if no change occurred, (True, server) otherwise.
-        :rtype (bool, dict)
+        :return  None if no change occurred,, server otherwise.
+        :rtype  dict
 
         """
         pass
 
     @abc.abstractmethod
-    def reserve_server(self, **filters):
+    def reserve_server(self, global_id):
 
         """
         Return first active server that answers the filters
         and change its status to 'reserved'.
 
-        :param filters: a dictionary of filters to search by.
+        :param global_id: The global id of the server.
         :return The server.
         :rtype dict
 

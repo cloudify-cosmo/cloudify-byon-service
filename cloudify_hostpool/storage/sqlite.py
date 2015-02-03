@@ -14,7 +14,8 @@
 # * limitations under the License.
 import json
 import sqlite3
-from base import AbstractStorage
+
+from cloudify_hostpool.storage.base import AbstractStorage
 
 
 class SQLiteStorage(AbstractStorage):
@@ -33,33 +34,15 @@ class SQLiteStorage(AbstractStorage):
             cursor = conn.cursor()
             cursor.execute(SQLiteStorage._CREATE_TABLE)
 
-    def _dict_factory(self, cursor, row):
-        """ Create dictionary out of fetched row by db cursor"""
-        d = {}
-        for idx, col in enumerate(cursor.description):
-            if col[0] == 'auth':
-                # "auth" column value is dictionary serialized to string
-                # -> json.dumps(auth).
-                d[col[0]] = json.loads(row[idx])
-            else:
-                d[col[0]] = row[idx]
-        return d
-
-    def _get_sql_and_values_from_kwargs(self, **kwargs):
-        """ Helper method to create sql query """
-        values = tuple(kwargs.itervalues())
-        sql_part = ' AND '.join('{0}=?'.format(k) for k in kwargs)
-        return sql_part, values
-
-    def get_servers(self, **kwargs):
+    def get_servers(self, **filters):
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
-            if not kwargs:
+            if not filters:
                 cursor.execute('SELECT * FROM servers')
             else:
-                sql_cond, values = self._get_sql_and_values_from_kwargs(
-                    **kwargs)
+                sql_cond, values = self._get_sql_and_values_from_filters(
+                    **filters)
                 cursor.execute('SELECT * FROM servers WHERE ' + sql_cond,
                                values)
             result = cursor.fetchall()
@@ -72,36 +55,35 @@ class SQLiteStorage(AbstractStorage):
                       json.dumps(server['auth']), server['port'],
                       server['alive'], server['reserved'])
             cursor.execute('INSERT INTO servers '
-                           '(server_id, address, auth, port, alive, reserved) '
-                           'VALUES(?, ?, ?, ?, ?, ?)', values)
+                           '(server_id, address, auth, port, alive, reserved)'
+                           ' VALUES(?, ?, ?, ?, ?, ?)', values)
             server['global_id'] = cursor.lastrowid
-            return server
 
-    def update_server(self, server, **kwargs):
-        if not kwargs:
-            return False, None
-        with sqlite3.connect(self._filename) as conn:
-            conn.row_factory = self._dict_factory
-            cursor = conn.cursor()
-            values = tuple(kwargs.itervalues())
-            sql_part = ", ".join('{0}=?'.format(k) for k in kwargs)
-            cursor.execute('UPDATE servers SET {0} WHERE global_id=?'
-                           .format(sql_part),
-                           values + (server['global_id'],))
-            if cursor.rowcount == 0:
-                return False, None
-            conn.commit()
-            cursor.execute('SELECT * FROM servers WHERE global_id=?',
-                           (server['global_id'],))
-            return True, cursor.fetchone()
-
-    def get_server(self, **kwargs):
-        if not kwargs:
+    def update_server(self, global_id, **filters):
+        if not filters:
             return None
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
-            sql_part, values = self._get_sql_and_values_from_kwargs(**kwargs)
+            values = tuple(filters.itervalues())
+            sql_part = ", ".join('{0}=?'.format(f) for f in filters)
+            cursor.execute('UPDATE servers SET {0} WHERE global_id=?'
+                           .format(sql_part),
+                           values + (global_id,))
+            if cursor.rowcount == 0:
+                return None
+            conn.commit()
+            cursor.execute('SELECT * FROM servers WHERE global_id=?',
+                           (global_id,))
+            return cursor.fetchone()
+
+    def get_server(self, **filters):
+        if not filters:
+            return None
+        with sqlite3.connect(self._filename) as conn:
+            conn.row_factory = self._dict_factory
+            cursor = conn.cursor()
+            sql_part, values = self._get_sql_and_values_from_filters(**filters)
             cursor.execute('SELECT * FROM servers WHERE ' + sql_part, values)
             return cursor.fetchone()
 
@@ -120,4 +102,20 @@ class SQLiteStorage(AbstractStorage):
                            (server['global_id'],))
             return True
 
-db = SQLiteStorage('test.db')
+    def _dict_factory(self, cursor, row):
+        """ Create dictionary out of fetched row by db cursor"""
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            if col[0] == 'auth':
+                # "auth" column value is dictionary serialized to string
+                # -> json.dumps(auth).
+                d[col[0]] = json.loads(row[idx])
+            else:
+                d[col[0]] = row[idx]
+        return d
+
+    def _get_sql_and_values_from_filters(self, **filters):
+        """ Helper method to create sql query """
+        values = tuple(filters.itervalues())
+        sql_part = ' AND '.join('{0}=?'.format(f) for f in filters)
+        return sql_part, values
