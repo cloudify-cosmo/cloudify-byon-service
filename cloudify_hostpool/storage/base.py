@@ -58,7 +58,7 @@ class AbstractStorage(object):
         :param global_id: The global id of the server.
         :param server: The server dictionary containing the new values.
 
-        :return  None if no change occurred,, server otherwise.
+        :return  None if no change occurred, server otherwise.
         :rtype  dict
 
         """
@@ -68,12 +68,11 @@ class AbstractStorage(object):
     def reserve_server(self, global_id):
 
         """
-        Return first active server that answers the filters
-        and change its status to 'reserved'.
+        Change status of the given server(global_id) to 'reserved'.
 
         :param global_id: The global id of the server.
-        :return The server.
-        :rtype dict
+        :return False if server has been already reserved, True otherwise.
+        :rtype boolean
 
         """
         pass

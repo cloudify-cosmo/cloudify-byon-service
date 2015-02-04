@@ -59,14 +59,14 @@ class SQLiteStorage(AbstractStorage):
                            ' VALUES(?, ?, ?, ?, ?, ?)', values)
             server['global_id'] = cursor.lastrowid
 
-    def update_server(self, global_id, **filters):
-        if not filters:
+    def update_server(self, global_id, server):
+        if not server:
             return None
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
-            values = tuple(filters.itervalues())
-            sql_part = ", ".join('{0}=?'.format(f) for f in filters)
+            values = tuple(server.itervalues())
+            sql_part = ", ".join('{0}=?'.format(s) for s in server)
             cursor.execute('UPDATE servers SET {0} WHERE global_id=?'
                            .format(sql_part),
                            values + (global_id,))
