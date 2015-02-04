@@ -29,11 +29,6 @@ class SQLiteStorage(AbstractStorage):
         self._filename = db_filename
         self._create_table()
 
-    def _create_table(self):
-        with sqlite3.connect(self._filename) as conn:
-            cursor = conn.cursor()
-            cursor.execute(SQLiteStorage._CREATE_TABLE)
-
     def get_servers(self, **filters):
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
@@ -87,20 +82,25 @@ class SQLiteStorage(AbstractStorage):
             cursor.execute('SELECT * FROM servers WHERE ' + sql_part, values)
             return cursor.fetchone()
 
-    def reserve_server(self, server):
+    def reserve_server(self, global_id):
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             conn.isolation_level = 'EXCLUSIVE'
             conn.execute('BEGIN EXCLUSIVE')
             cursor = conn.cursor()
             cursor.execute('SELECT * FROM servers WHERE global_id=?',
-                           (server['global_id'],))
+                           (global_id,))
             result = cursor.fetchone()
             if result['reserved']:
                 return False
             cursor.execute('UPDATE servers SET reserved=1 WHERE global_id=?',
-                           (server['global_id'],))
+                           (global_id,))
             return True
+
+    def _create_table(self):
+        with sqlite3.connect(self._filename) as conn:
+            cursor = conn.cursor()
+            cursor.execute(SQLiteStorage._CREATE_TABLE)
 
     def _dict_factory(self, cursor, row):
         """ Create dictionary out of fetched row by db cursor"""
