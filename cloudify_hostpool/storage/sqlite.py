@@ -20,10 +20,12 @@ from cloudify_hostpool.storage.base import AbstractStorage
 
 class SQLiteStorage(AbstractStorage):
     """ Storage wrapper for SQLite DB implementing AbstractStorage interface"""
-    _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS servers ' \
+    _TABLE_NAME = 'servers'
+    _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS {0} ' \
                     '(global_id integer PRIMARY KEY, server_id text, ' \
-                    'address text, auth text, port integer, alive integer, ' \
-                    'reserved integer)'
+                    'private_ip text, public_ip text, auth text, ' \
+                    'port integer, alive integer, reserved integer)'\
+        .format(_TABLE_NAME)
 
     def __init__(self, db_filename):
         self._filename = db_filename
@@ -34,11 +36,13 @@ class SQLiteStorage(AbstractStorage):
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
             if not filters:
-                cursor.execute('SELECT * FROM servers')
+                cursor.execute('SELECT * FROM {0}'
+                               .format(SQLiteStorage._TABLE_NAME))
             else:
                 sql_cond, values = self._get_sql_and_values_from_filters(
                     **filters)
-                cursor.execute('SELECT * FROM servers WHERE ' + sql_cond,
+                cursor.execute('SELECT * FROM {0} WHERE {1}'
+                               .format(SQLiteStorage._TABLE_NAME, sql_cond),
                                values)
             result = cursor.fetchall()
             return list(result)
@@ -46,12 +50,13 @@ class SQLiteStorage(AbstractStorage):
     def add_server(self, server):
         with sqlite3.connect(self._filename) as conn:
             cursor = conn.cursor()
-            values = (server.get('server_id'), server['address'],
-                      json.dumps(server['auth']), server['port'],
-                      server['alive'], server['reserved'])
-            cursor.execute('INSERT INTO servers '
-                           '(server_id, address, auth, port, alive, reserved)'
-                           ' VALUES(?, ?, ?, ?, ?, ?)', values)
+            values = (server.get('server_id'), server['private_ip'],
+                      server['public_ip'], json.dumps(server['auth']),
+                      server['port'], server['alive'], server['reserved'])
+            cursor.execute('INSERT INTO {0} (server_id, private_ip, '
+                           'public_ip, auth, port, alive, reserved)'
+                           ' VALUES(?, ?, ?, ?, ?, ?, ?)'
+                           .format(SQLiteStorage._TABLE_NAME), values)
             server['global_id'] = cursor.lastrowid
 
     def update_server(self, global_id, server):
@@ -60,16 +65,16 @@ class SQLiteStorage(AbstractStorage):
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
-            values = tuple(server.itervalues())
+            values = tuple(server.itervalues()) + (global_id,)
             sql_part = ", ".join('{0}=?'.format(s) for s in server)
-            cursor.execute('UPDATE servers SET {0} WHERE global_id=?'
-                           .format(sql_part),
-                           values + (global_id,))
+            cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
+                           .format(SQLiteStorage._TABLE_NAME, sql_part),
+                           values)
             if cursor.rowcount == 0:
                 return None
             conn.commit()
-            cursor.execute('SELECT * FROM servers WHERE global_id=?',
-                           (global_id,))
+            cursor.execute('SELECT * FROM {0} WHERE global_id=?'
+                           .format(SQLiteStorage._TABLE_NAME), (global_id, ))
             return cursor.fetchone()
 
     def get_server(self, **filters):
@@ -79,7 +84,9 @@ class SQLiteStorage(AbstractStorage):
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
             sql_part, values = self._get_sql_and_values_from_filters(**filters)
-            cursor.execute('SELECT * FROM servers WHERE ' + sql_part, values)
+            cursor.execute('SELECT * FROM {0} WHERE {1}'
+                           .format(SQLiteStorage._TABLE_NAME, sql_part),
+                           values)
             return cursor.fetchone()
 
     def reserve_server(self, global_id):

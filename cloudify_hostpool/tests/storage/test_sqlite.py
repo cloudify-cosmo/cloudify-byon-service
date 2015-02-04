@@ -16,6 +16,8 @@ import os
 import tempfile
 import unittest
 
+import sqlite3
+
 from cloudify_hostpool.storage import sqlite
 
 
@@ -24,14 +26,25 @@ class SQLiteTest(unittest.TestCase):
     tempfile = None
     server_list = None
 
-    def setUp(self):
-        _, self.tempfile = tempfile.mkstemp()
-        self.db = sqlite.SQLiteStorage(self.tempfile)
+    @classmethod
+    def setUpClass(cls):
+        fd, cls.tempfile = tempfile.mkstemp()
+        os.close(fd)
+        cls.db = sqlite.SQLiteStorage(cls.tempfile)
 
-    def tearDown(self):
-        if self.tempfile is not None:
-            os.unlink(self.tempfile)
-            self.tempfile = None
+    @classmethod
+    def tearDownClass(cls):
+        if cls.tempfile is not None:
+            os.unlink(cls.tempfile)
+            cls.tempfile = None
+
+    def setUp(self):
+        with sqlite3.connect(self.tempfile) as conn:
+            cursor = conn.cursor()
+            cursor.execute('DROP TABLE {0}'
+                           .format(sqlite.SQLiteStorage._TABLE_NAME))
+            self.db = None
+        self.db = sqlite.SQLiteStorage(self.tempfile)
 
     def test_get_all_empty(self):
         result = self.db.get_servers()
@@ -39,7 +52,8 @@ class SQLiteTest(unittest.TestCase):
 
     def test_add_server(self):
         server = {
-            'address': '127.0.0.1',
+            'private_ip': '127.0.0.1',
+            'public_ip': '127.0.0.1',
             'port': 22,
             'auth': None,
             'server_id': None,
@@ -120,7 +134,7 @@ class SQLiteTest(unittest.TestCase):
         self.assertFalse(result)
 
         server = self.db.get_server(global_id=db_server['global_id'])
-        self.assertEqual(db_server['address'], server['address'])
+        self.assertEqual(db_server['private_ip'], server['private_ip'])
         self.assertEqual(db_server['port'], server['port'])
         self.assertEqual(db_server['auth'], server['auth'])
         self.assertEqual(db_server['server_id'], server['server_id'])
@@ -132,7 +146,8 @@ class SQLiteTest(unittest.TestCase):
     def _add_servers(self):
         self.server_list = [
             {
-                'address': '127.0.0.1',
+                'private_ip': '127.0.0.1',
+                'public_ip': '127.0.0.1',
                 'port': '22',
                 'auth': None,
                 'server_id': None,
@@ -140,7 +155,8 @@ class SQLiteTest(unittest.TestCase):
                 'reserved': False
             },
             {
-                'address': '127.0.0.1',
+                'private_ip': '127.0.0.1',
+                'public_ip': '127.0.0.1',
                 'port': '1000',
                 'auth': None,
                 'server_id': None,
@@ -148,7 +164,8 @@ class SQLiteTest(unittest.TestCase):
                 'reserved': False
             },
             {
-                'address': '10.0.0.1',
+                'private_ip': '10.0.0.1',
+                'public_ip': '10.0.0.1',
                 'port': '1000',
                 'auth': None,
                 'server_id': None,
