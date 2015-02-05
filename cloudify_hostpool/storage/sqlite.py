@@ -18,13 +18,24 @@ import sqlite3
 from cloudify_hostpool.storage.base import AbstractStorage
 
 
+# will be moved to exceptions
+class DBError(Exception):
+    def __init__(self, message):
+        super(DBError, self).__init__(message)
+
+
+class DBLockedError(DBError):
+    def __init__(self):
+        super(DBLockedError, self).__init__("Database is locked")
+
+
 class SQLiteStorage(AbstractStorage):
     """ Storage wrapper for SQLite DB implementing AbstractStorage interface"""
     _TABLE_NAME = 'servers'
     _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS {0} ' \
                     '(global_id integer PRIMARY KEY, server_id text, ' \
                     'private_ip text, public_ip text, auth text, ' \
-                    'port integer, alive integer, reserved integer)'\
+                    'port text, alive integer, reserved integer)' \
         .format(_TABLE_NAME)
 
     def __init__(self, db_filename):
@@ -62,20 +73,29 @@ class SQLiteStorage(AbstractStorage):
     def update_server(self, global_id, server):
         if not server:
             return None
-        with sqlite3.connect(self._filename) as conn:
-            conn.row_factory = self._dict_factory
-            cursor = conn.cursor()
-            values = tuple(server.itervalues()) + (global_id,)
-            sql_part = ", ".join('{0}=?'.format(s) for s in server)
-            cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
-                           .format(SQLiteStorage._TABLE_NAME, sql_part),
-                           values)
-            if cursor.rowcount == 0:
-                return None
-            conn.commit()
-            cursor.execute('SELECT * FROM {0} WHERE global_id=?'
-                           .format(SQLiteStorage._TABLE_NAME), (global_id, ))
-            return cursor.fetchone()
+        try:
+            with sqlite3.connect(self._filename, isolation_level='EXCLUSIVE')\
+                    as conn:
+                conn.row_factory = self._dict_factory
+                conn.execute('BEGIN EXCLUSIVE')
+                cursor = conn.cursor()
+                values = tuple(server.itervalues())
+                sql_part = ", ".join('{0}=?'.format(s) for s in server)
+                cursor.execute('SELECT * FROM {0} WHERE global_id=?'
+                               .format(SQLiteStorage._TABLE_NAME),
+                               (global_id, ))
+                srv = cursor.fetchone()
+                if all(item in srv.iteritems() for item in server.iteritems()):
+                    return None
+                cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
+                               .format(SQLiteStorage._TABLE_NAME, sql_part),
+                               values + (global_id,))
+                srv.update(server)
+                return srv
+        except sqlite3.OperationalError as e:
+            if e.message == 'database is locked':
+                raise DBLockedError()
+            raise DBError(e.message)
 
     def get_server(self, **filters):
         if not filters:
@@ -90,19 +110,24 @@ class SQLiteStorage(AbstractStorage):
             return cursor.fetchone()
 
     def reserve_server(self, global_id):
-        with sqlite3.connect(self._filename) as conn:
-            conn.row_factory = self._dict_factory
-            conn.isolation_level = 'EXCLUSIVE'
-            conn.execute('BEGIN EXCLUSIVE')
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM servers WHERE global_id=?',
-                           (global_id,))
-            result = cursor.fetchone()
-            if result['reserved']:
-                return False
-            cursor.execute('UPDATE servers SET reserved=1 WHERE global_id=?',
-                           (global_id,))
-            return True
+        while True:
+            try:
+                with sqlite3.connect(self._filename) as conn:
+                    conn.row_factory = self._dict_factory
+                    conn.isolation_level = 'EXCLUSIVE'
+                    conn.execute('BEGIN EXCLUSIVE')
+                    cursor = conn.cursor()
+                    cursor.execute('SELECT * FROM {0} WHERE global_id=?'
+                                   .format(self._TABLE_NAME), (global_id,))
+                    result = cursor.fetchone()
+                    if result['reserved']:
+                        return False
+                    cursor.execute('UPDATE {0} SET reserved=1 WHERE global_id=?'
+                                   .format(self._TABLE_NAME), (global_id,))
+                    return True
+            except sqlite3.OperationalError as e:
+                if e.message != 'database is locked':
+                    raise DBError(e.message)
 
     def _create_table(self):
         with sqlite3.connect(self._filename) as conn:

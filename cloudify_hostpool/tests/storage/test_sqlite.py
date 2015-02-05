@@ -12,39 +12,10 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
-import os
-import tempfile
-import unittest
-
-import sqlite3
-
-from cloudify_hostpool.storage import sqlite
+from cloudify_hostpool.tests.storage import test_sqlite_base
 
 
-class SQLiteTest(unittest.TestCase):
-    db = None
-    tempfile = None
-    server_list = None
-
-    @classmethod
-    def setUpClass(cls):
-        fd, cls.tempfile = tempfile.mkstemp()
-        os.close(fd)
-        cls.db = sqlite.SQLiteStorage(cls.tempfile)
-
-    @classmethod
-    def tearDownClass(cls):
-        if cls.tempfile is not None:
-            os.unlink(cls.tempfile)
-            cls.tempfile = None
-
-    def setUp(self):
-        with sqlite3.connect(self.tempfile) as conn:
-            cursor = conn.cursor()
-            cursor.execute('DROP TABLE {0}'
-                           .format(sqlite.SQLiteStorage._TABLE_NAME))
-            self.db = None
-        self.db = sqlite.SQLiteStorage(self.tempfile)
+class SQLiteTest(test_sqlite_base.SQLiteTest):
 
     def test_get_all_empty(self):
         result = self.db.get_servers()
@@ -54,7 +25,7 @@ class SQLiteTest(unittest.TestCase):
         server = {
             'private_ip': '127.0.0.1',
             'public_ip': '127.0.0.1',
-            'port': 22,
+            'port': '22',
             'auth': None,
             'server_id': None,
             'alive': False,
@@ -106,6 +77,9 @@ class SQLiteTest(unittest.TestCase):
         self.assertNotEqual(updated_server['reserved'], server['reserved'])
         self.assertEqual(updated_server['reserved'],
                          server_update['reserved'])
+        updated_server2 = self.db.update_server(server['global_id'],
+                                                server_update)
+        self.assertIsNone(updated_server2)
 
     def test_get_server_global_id(self):
         self._add_servers()
@@ -175,4 +149,3 @@ class SQLiteTest(unittest.TestCase):
         ]
         for server in self.server_list:
             self.db.add_server(server)
-
