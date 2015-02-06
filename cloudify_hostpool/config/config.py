@@ -75,7 +75,8 @@ def _get_subnet_hosts(subnet, mask):
 def _add_servers(storage, servers):
     """ Add server to database creating the server structure (dictionary)
         server = {
-            'address': ip address or hostname,
+            'public_ip': ip address or hostname,
+            'private_ip': ip address or hostname,
             'port': port to communicate to,
             'auth': a dictionary with 'username' and 'keyfile' or 'password',
             'alive': flag that will inform if this server has been reachable
