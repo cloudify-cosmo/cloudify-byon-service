@@ -12,12 +12,20 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
+import exceptions
 import re
 import socket
 import struct
+
 import yaml
 
 default_auth = None
+
+
+# will be moved to exceptions
+class ConfigError(exceptions.Exception):
+    def __init__(self, message):
+        super(ConfigError, self).__init__(message)
 
 
 def load_config(storage, file_name):
@@ -42,13 +50,13 @@ def _long2ip(num):
 
 
 def _get_ibitmask(mask):
-    return (2L << (31-int(mask))) - 1
+    return (2L << (32-int(mask))-1) - 1
 
 
 def _get_broadcast_long(subnet, mask):
-    s = _ip2long(subnet)
-    m = _get_ibitmask(int(mask))
-    return s | m
+    bin_sub = _ip2long(subnet)
+    bin_imask = _get_ibitmask(int(mask))
+    return bin_sub | bin_imask
 
 
 def _get_subnet_and_mask(ip_range):
@@ -66,9 +74,8 @@ def _get_subnet_hosts(subnet, mask):
     Yields each server address given in ip range.
     """
     bin_sub = _ip2long(subnet)
-    bin_imask = _get_ibitmask(mask)
-    bin_broadcast = bin_sub | bin_imask
-    for address in range(bin_sub, bin_broadcast):
+    bin_broadcast = _get_broadcast_long(subnet, mask)
+    for address in range(bin_sub + 1, bin_broadcast):
         yield _long2ip(address)
 
 
@@ -86,26 +93,34 @@ def _add_servers(storage, servers):
         }
     """
     for server in servers:
-        if server.get('address') is not None:
+        if server.get('private_ip') is not None:
             server['alive'] = False
             server['reserved'] = False
             if server.get('auth') is None:
                 server['auth'] = dict(default_auth)
-            server['port'] = server['auth'].pop('port')
+            try:
+                server['port'] = server['auth'].pop('port')
+            except KeyError:
+                raise ConfigError("No authorisation port given")
             storage.add_server(server)
         elif server.get('ip_range') is not None:
             subnet, mask = _get_subnet_and_mask(server.get('ip_range'))
             servers_list_gen = _get_subnet_hosts(subnet, mask)
             for server_ip in servers_list_gen:
-                auth = dict(default_auth)
                 if server.get('auth') is not None:
                     auth = dict(server['auth'])
-                s = {'address': server_ip,
-                     'auth': auth,
-                     'alive': False,
-                     'reserved': False}
-                s['port'] = s['auth'].pop('port')
+                elif default_auth:
+                    auth = dict(default_auth)
+                else:
+                    raise ConfigError("No authorisation given")
+                try:
+                    s = dict(private_ip=server_ip,
+                             auth=auth,
+                             alive=False,
+                             reserved=False,
+                             port=auth.pop('port'))
+                except KeyError:
+                    raise ConfigError("No authorisation port given")
                 storage.add_server(s)
         else:
-            return False  # wrong config
-
+            raise ConfigError("Unsupported key in configuration")
