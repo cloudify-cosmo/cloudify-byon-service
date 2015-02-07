@@ -88,10 +88,8 @@ class ConfigurationTest(unittest.TestCase):
             dict(private_ip='2.2.2.2',
                  auth={'username': 'ubuntu2', 'pass': 'pass2', 'port': 22})
         ]
-        print "Before: ", self.storage.get_servers()
         config._add_servers(self.storage, hosts)
         saved_servers = self.storage.get_servers()
-        print self.storage.get_servers()
         self.assertEqual(len(saved_servers), len(hosts))
 
     def test_add_servers_ip_range(self):
@@ -133,3 +131,13 @@ class ConfigurationTest(unittest.TestCase):
         _file = 'cloudify_hostpool/tests/config/pool.yaml'
         config.load_config(self.storage, _file)
         self.assertEqual(len(self.storage.get_servers()), 4)
+
+    def test_bad_config(self):
+        _file = 'cloudify_hostpool/tests/config/bad_pool.yaml'
+        self.assertRaises(config.ConfigError, config.load_config,
+                          self.storage, _file)
+
+    def test_empty_config(self):
+        _file = 'cloudify_hostpool/tests/config/empty_pool.yaml'
+        self.assertRaises(config.ConfigError, config.load_config,
+                          self.storage, _file)

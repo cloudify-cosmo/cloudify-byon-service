@@ -29,15 +29,29 @@ class ConfigError(exceptions.Exception):
 
 
 def load_config(storage, file_name):
-    """ Main function loading config from yaml file to the storage.
-    Storage is an object of a class implementing AbstractStorage"""
+    """ Main function loading config from YAML file to the storage.
+    Storage is an object of a class implementing AbstractStorage
+
+    :param storage: storage object where hosts will be added to, implements
+    AbstractStorage
+    :param file_name: name of file where pool configuration is provided
+    """
     with open(file_name, 'r') as config_file:
         config = yaml.load(config_file)
+    if config is None:
+        raise ConfigError("Empty config")
+    _set_default_auth(config)
+    if config.get('hosts'):
+        _add_servers(storage, config.get('hosts'))
+    else:
+        raise ConfigError("Unsupported key in configuration")
+
+
+def _set_default_auth(config):
     default = config.get('default')
     global default_auth
     if default is not None:
         default_auth = default.get('auth')
-    _add_servers(storage, config.get('hosts'))
 
 
 def _ip2long(ip):
@@ -50,7 +64,7 @@ def _long2ip(num):
 
 
 def _get_ibitmask(mask):
-    return (2L << (32-int(mask))-1) - 1
+    return (2L << (32 - int(mask)) - 1) - 1
 
 
 def _get_broadcast_long(subnet, mask):
@@ -70,13 +84,29 @@ def _get_subnet_and_mask(ip_range):
 
 
 def _get_subnet_hosts(subnet, mask):
-    """ Subnet hosts generator.
-    Yields each server address given in ip range.
+    """ Subnet hosts generator. Yields each server address given in ip range.
     """
     bin_sub = _ip2long(subnet)
     bin_broadcast = _get_broadcast_long(subnet, mask)
     for address in range(bin_sub + 1, bin_broadcast):
         yield _long2ip(address)
+
+
+def _validate_config_auth(auth):
+    mandatory_keys = ['username', 'port']
+    if not all(key in auth.iterkeys() for key in mandatory_keys):
+        raise ConfigError("Error in authorization")
+
+
+def _get_auth(server):
+    if server.get('auth') is not None:
+        auth = dict(server['auth'])
+    elif default_auth:
+        auth = dict(default_auth)
+    else:
+        raise ConfigError("No authorization given")
+    _validate_config_auth(auth)
+    return auth
 
 
 def _add_servers(storage, servers):
@@ -96,31 +126,19 @@ def _add_servers(storage, servers):
         if server.get('private_ip') is not None:
             server['alive'] = False
             server['reserved'] = False
-            if server.get('auth') is None:
-                server['auth'] = dict(default_auth)
-            try:
-                server['port'] = server['auth'].pop('port')
-            except KeyError:
-                raise ConfigError("No authorisation port given")
+            server['auth'] = _get_auth(server)
+            server['port'] = server['auth'].pop('port')
             storage.add_server(server)
         elif server.get('ip_range') is not None:
-            subnet, mask = _get_subnet_and_mask(server.get('ip_range'))
+            subnet, mask = _get_subnet_and_mask(server.pop('ip_range'))
             servers_list_gen = _get_subnet_hosts(subnet, mask)
             for server_ip in servers_list_gen:
-                if server.get('auth') is not None:
-                    auth = dict(server['auth'])
-                elif default_auth:
-                    auth = dict(default_auth)
-                else:
-                    raise ConfigError("No authorisation given")
-                try:
-                    s = dict(private_ip=server_ip,
-                             auth=auth,
-                             alive=False,
-                             reserved=False,
-                             port=auth.pop('port'))
-                except KeyError:
-                    raise ConfigError("No authorisation port given")
+                auth = _get_auth(server)
+                s = dict(private_ip=server_ip,
+                         auth=auth,
+                         alive=False,
+                         reserved=False,
+                         port=auth.pop('port'))
                 storage.add_server(s)
         else:
-            raise ConfigError("Unsupported key in configuration")
+            raise ConfigError("Unsupported key in hosts configuration")
