@@ -12,36 +12,18 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
+import os
+import StringIO
 import socket
 import unittest
+
+from mock import MagicMock
+from mock import patch
 
 from cloudify_hostpool.config import config
 
 
-class DummyStorage(object):
-
-    def __init__(self):
-        self.db = []
-
-    def add_server(self, server):
-        self.db.append(server)
-
-    def get_servers(self):
-        return self.db
-
-
 class ConfigurationTest(unittest.TestCase):
-
-    def __init__(self, *args, **kwargs):
-        super(ConfigurationTest, self).__init__(*args, **kwargs)
-        self.storage = None
-
-    def setUp(self):
-        self.storage = DummyStorage()
-
-    def tearDown(self):
-        self.storage = None
-
     def test_get_broadcast(self):
         ip = '123.213.123.232/30'
         self.assertEqual(('123.213.123.232', '30'),
@@ -88,8 +70,7 @@ class ConfigurationTest(unittest.TestCase):
             dict(private_ip='2.2.2.2',
                  auth={'username': 'ubuntu2', 'pass': 'pass2', 'port': 22})
         ]
-        config._add_servers(self.storage, hosts)
-        saved_servers = self.storage.get_servers()
+        saved_servers = list(config._add_servers(hosts))
         self.assertEqual(len(saved_servers), len(hosts))
 
     def test_add_servers_ip_range(self):
@@ -97,47 +78,53 @@ class ConfigurationTest(unittest.TestCase):
             dict(ip_range='2.2.2.8/29',
                  auth={'username': 'ubuntu3', 'pass': 'pass2', 'port': 22})
         ]
-        config._add_servers(self.storage, hosts)
-        saved_servers = self.storage.get_servers()
+        saved_servers = list(config._add_servers(hosts))
         self.assertEqual(len(saved_servers), 6)
 
     def test_add_servers_error(self):
         hosts = [
             dict(auth={'username': 'ubuntu3', 'pass': 'pass2', 'port': 22})
         ]
-        self.assertRaises(config.ConfigError, config._add_servers,
-                          self.storage, hosts)
+        self.assertRaises(config.ConfigError,
+                          lambda: list(config._add_servers(hosts)))
         hosts = [
             dict(ip='2.2.2.8',
                  auth={'username': 'ubuntu3', 'pass': 'pass2', 'port': 22})
         ]
-        self.assertRaises(config.ConfigError, config._add_servers,
-                          self.storage, hosts)
+        self.assertRaises(config.ConfigError,
+                          lambda: list(config._add_servers(hosts)))
         hosts = [
             dict(private_ip='2.2.2.8',
                  auth={'username': 'ubuntu3', 'pass': 'pass2'})
         ]
-        self.assertRaises(config.ConfigError, config._add_servers,
-                          self.storage, hosts)
+        self.assertRaises(config.ConfigError,
+                          lambda: list(config._add_servers(hosts)))
         hosts = [
             dict(ip_range='2.2.2.8/29')
         ]
         config.default_auth = dict(username='adam', password='eve')
-        self.assertRaises(config.ConfigError, config._add_servers,
-                          self.storage, hosts)
+        self.assertRaises(config.ConfigError,
+                          lambda: list(config._add_servers(hosts)))
         config.default_auth = None
 
     def test_load_config(self):
-        _file = 'cloudify_hostpool/tests/config/pool.yaml'
-        config.load_config(self.storage, _file)
-        self.assertEqual(len(self.storage.get_servers()), 4)
+        _file = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)), 'resources/pool.yaml')
+        loaded_servers = list(config.load_config(_file))
+        self.assertEqual(len(loaded_servers), 4)
 
     def test_bad_config(self):
-        _file = 'cloudify_hostpool/tests/config/bad_pool.yaml'
-        self.assertRaises(config.ConfigError, config.load_config,
-                          self.storage, _file)
+        _file = StringIO.StringIO("bad_key: \nbad_key: test")
+        m = MagicMock(return_value=_file)
+        _file.__enter__ = MagicMock(return_value=_file)
+        _file.__exit__ = MagicMock()
+        with patch('__builtin__.open', m):
+            self.assertRaises(config.ConfigError, config.load_config, _file)
 
     def test_empty_config(self):
-        _file = 'cloudify_hostpool/tests/config/empty_pool.yaml'
-        self.assertRaises(config.ConfigError, config.load_config,
-                          self.storage, _file)
+        _file = StringIO.StringIO("")
+        m = MagicMock(return_value=_file)
+        _file.__enter__ = MagicMock(return_value=_file)
+        _file.__exit__ = MagicMock()
+        with patch('__builtin__.open', m):
+            self.assertRaises(config.ConfigError, config.load_config, 'x')

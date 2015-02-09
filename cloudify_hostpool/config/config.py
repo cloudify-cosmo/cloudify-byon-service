@@ -28,13 +28,13 @@ class ConfigError(exceptions.Exception):
         super(ConfigError, self).__init__(message)
 
 
-def load_config(storage, file_name):
+def load_config(file_name):
     """ Main function loading config from YAML file to the storage.
     Storage is an object of a class implementing AbstractStorage
 
-    :param storage: storage object where hosts will be added to, implements
-    AbstractStorage
     :param file_name: name of file where pool configuration is provided
+
+    :return server_generator: generator
     """
     with open(file_name, 'r') as config_file:
         config = yaml.load(config_file)
@@ -42,7 +42,7 @@ def load_config(storage, file_name):
         raise ConfigError("Empty config")
     _set_default_auth(config)
     if config.get('hosts'):
-        _add_servers(storage, config.get('hosts'))
+        return _add_servers(config.get('hosts'))
     else:
         raise ConfigError("Unsupported key in configuration")
 
@@ -109,7 +109,7 @@ def _get_auth(server):
     return auth
 
 
-def _add_servers(storage, servers):
+def _add_servers(servers):
     """ Add server to database creating the server structure (dictionary)
         server = {
             'public_ip': ip address or hostname,
@@ -128,7 +128,7 @@ def _add_servers(storage, servers):
             server['reserved'] = False
             server['auth'] = _get_auth(server)
             server['port'] = server['auth'].pop('port')
-            storage.add_server(server)
+            yield server
         elif server.get('ip_range') is not None:
             subnet, mask = _get_subnet_and_mask(server.pop('ip_range'))
             servers_list_gen = _get_subnet_hosts(subnet, mask)
@@ -139,6 +139,6 @@ def _add_servers(storage, servers):
                          alive=False,
                          reserved=False,
                          port=auth.pop('port'))
-                storage.add_server(s)
+                yield s
         else:
             raise ConfigError("Unsupported key in hosts configuration")
