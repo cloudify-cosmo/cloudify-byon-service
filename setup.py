@@ -21,5 +21,6 @@ setup(
               'cloudify_hostpool.hosts',
               'cloudify_hostpool.rest',
               'cloudify_hostpool.storage'],
-    description='Cloudify Host Pool Service'
+    description='Cloudify Host Pool Service',
+    install_requires=['PyYAML']
 )

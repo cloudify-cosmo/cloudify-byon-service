@@ -134,11 +134,13 @@ def _add_servers(servers):
             servers_list_gen = _get_subnet_hosts(subnet, mask)
             for server_ip in servers_list_gen:
                 auth = _get_auth(server)
+                _server = dict(server)
                 s = dict(private_ip=server_ip,
                          auth=auth,
                          alive=False,
                          reserved=False,
                          port=auth.pop('port'))
-                yield s
+                _server.update(s)
+                yield _server
         else:
             raise ConfigError("Unsupported key in hosts configuration")
