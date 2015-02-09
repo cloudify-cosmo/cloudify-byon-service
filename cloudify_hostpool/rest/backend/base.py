@@ -19,6 +19,7 @@ class AbstractRestBackend(object):
     """ Interface for business logic layer of server acquisition and release"""
     __metaclass__ = abc.ABCMeta
 
+    @abc.abstractmethod
     def list_servers(self):
         """
         List all allocated servers.
@@ -27,6 +28,7 @@ class AbstractRestBackend(object):
         :rtype: list of 'dict'
         """
 
+    @abc.abstractmethod
     def acquire_server(self):
         """
         Server acquisition - schedule server acquisition first running server,
@@ -39,6 +41,7 @@ class AbstractRestBackend(object):
         :rtype: dict
         """
 
+    @abc.abstractmethod
     def release_server(self, server_id):
         """
         Release server with acquisition id given that is no longer needed.
@@ -50,6 +53,7 @@ class AbstractRestBackend(object):
         :rtype: dict
         """
 
+    @abc.abstractmethod
     def get_server(self, server_id):
         """
         Retrieve server details.
