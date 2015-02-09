@@ -29,12 +29,12 @@ class ConfigError(exceptions.Exception):
 
 
 def load_config(file_name):
-    """ Main function loading config from YAML file to the storage.
-    Storage is an object of a class implementing AbstractStorage
+    """ Main function loading config from YAML and returning
+    generator of server dictionaries.
 
     :param file_name: name of file where pool configuration is provided
 
-    :return server_generator: generator
+    :return server_generator: generator of server dictionaries
     """
     with open(file_name, 'r') as config_file:
         config = yaml.load(config_file)

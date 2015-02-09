@@ -25,9 +25,10 @@ from cloudify_hostpool.config import config
 
 class ConfigurationTest(unittest.TestCase):
     def test_get_broadcast(self):
-        ip = '123.213.123.232/30'
-        self.assertEqual(('123.213.123.232', '30'),
-                         config._get_subnet_and_mask(ip))
+        ip = '123.213.123.232'
+        mask = '30'
+        self.assertEqual('123.213.123.235',
+                         config._long2ip(config._get_broadcast_long(ip, mask)))
 
     def test_get_subnet_and_mask(self):
         ip = '123.213.123.232/30'
