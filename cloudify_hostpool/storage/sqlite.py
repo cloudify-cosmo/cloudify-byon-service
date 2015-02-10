@@ -122,7 +122,8 @@ class SQLiteStorage(AbstractStorage):
                     result = cursor.fetchone()
                     if result['reserved']:
                         return False
-                    cursor.execute('UPDATE {0} SET reserved=1 WHERE global_id=?'
+                    cursor.execute('UPDATE {0} SET reserved=1 '
+                                   'WHERE global_id=?'
                                    .format(self._TABLE_NAME), (global_id,))
                     return True
             except sqlite3.OperationalError as e:
