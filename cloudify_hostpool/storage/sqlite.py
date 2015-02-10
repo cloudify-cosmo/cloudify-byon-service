@@ -62,7 +62,7 @@ class SQLiteStorage(AbstractStorage):
         with sqlite3.connect(self._filename) as conn:
             cursor = conn.cursor()
             values = (server.get('server_id'), server['private_ip'],
-                      server['public_ip'], json.dumps(server['auth']),
+                      server.get('public_ip'), json.dumps(server['auth']),
                       server['port'], server['alive'], server['reserved'])
             cursor.execute('INSERT INTO {0} (server_id, private_ip, '
                            'public_ip, auth, port, alive, reserved)'
