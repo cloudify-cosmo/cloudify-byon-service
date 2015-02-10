@@ -18,14 +18,14 @@ from flask import Flask
 from flask import jsonify
 from flask_restful import Api
 
-import cloudify_hostpool.exceptions
+from cloudify_hostpool.exceptions import ByonHTTPException
 
 
 app = Flask(__name__)
 api = Api(app)
 
 
-@app.errorhandler(cloudify_hostpool.exceptions.ByonHTTPException)
+@app.errorhandler(ByonHTTPException)
 def handle_byon_errors(error):
     response = jsonify(error.to_dict())
     response.status_code = error.get_code()

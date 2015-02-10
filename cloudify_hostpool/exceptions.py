@@ -63,3 +63,21 @@ class NotFoundError(HostPoolHTTPException):
 
     def __str__(self):
         return repr(self.text)
+
+
+class ConfigError(Exception):
+    """Raised when there is some error in configuration"""
+    def __init__(self, message):
+        super(ConfigError, self).__init__(message)
+
+
+class DBError(Exception):
+    """Raised when there is some error in database"""
+    def __init__(self, message):
+        super(DBError, self).__init__(message)
+
+
+class DBLockedError(DBError):
+    """Raised when the database is locked"""
+    def __init__(self):
+        super(DBLockedError, self).__init__("Database is locked")

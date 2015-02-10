@@ -16,17 +16,8 @@ import json
 import sqlite3
 
 from cloudify_hostpool.storage.base import AbstractStorage
-
-
-# will be moved to exceptions
-class DBError(Exception):
-    def __init__(self, message):
-        super(DBError, self).__init__(message)
-
-
-class DBLockedError(DBError):
-    def __init__(self):
-        super(DBLockedError, self).__init__("Database is locked")
+from cloudify_hostpool.exceptions import DBError
+from cloudify_hostpool.exceptions import DBLockedError
 
 
 class SQLiteStorage(AbstractStorage):
