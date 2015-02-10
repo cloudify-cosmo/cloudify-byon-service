@@ -22,5 +22,5 @@ setup(
               'cloudify_hostpool.rest',
               'cloudify_hostpool.storage'],
     description='Cloudify Host Pool Service',
-    install_requires=['PyYAML']
+    install_requires=['flask', 'flask_restful', 'PyYAML']
 )
