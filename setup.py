@@ -15,7 +15,7 @@
 from setuptools import setup
 
 setup(
-    name='cloudify-hostpool-service',
+    name='cloudify-host-pool-service',
     version='1.0',
     packages=['cloudify_hostpool.config',
               'cloudify_hostpool.hosts',
