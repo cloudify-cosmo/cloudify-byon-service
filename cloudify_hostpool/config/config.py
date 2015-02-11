@@ -12,20 +12,15 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
-import exceptions
 import re
 import socket
 import struct
 
 import yaml
 
+from cloudify_hostpool.exceptions import ConfigError
+
 default_auth = None
-
-
-# will be moved to exceptions
-class ConfigError(exceptions.Exception):
-    def __init__(self, message):
-        super(ConfigError, self).__init__(message)
 
 
 def load_config(file_name):
