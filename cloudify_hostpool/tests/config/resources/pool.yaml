@@ -7,20 +7,20 @@ default:
     auth:
         username: ubuntu
         password: pass
-        port: 22
+    port: 22
 
 # List of BYON hosts.
 # For each host you need to specify exactly one of: private_ip, iprange (for multiple machines defined by CIDR)
 hosts:
     # box with custom config accessed by hostname and ssh key
-    - private_ip: mybox123
+    - host: mybox123
       auth:
           username: ubuntu
           keyfile: /home/ubuntu/.ssh/key1.pem
-          port: 22
+      port: 22
 
     # box with default config 
-    - private_ip: 192.168.100.1
+    - host: 192.168.100.1
 
     # 4 boxes defined by CIDR (mask) using custom config
     # machines specified using CIDR notation must share configuration
@@ -28,7 +28,7 @@ hosts:
       auth:
           username: ubuntu
           password: pass2
-          port: 80
+      port: 80
 
 # Question: do we need separate hostname and ip instead of private_ip?
 # Pros: easier / better validation?

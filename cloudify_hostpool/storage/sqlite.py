@@ -22,10 +22,10 @@ from cloudify_hostpool.exceptions import DBLockedError
 
 class SQLiteStorage(AbstractStorage):
     """ Storage wrapper for SQLite DB implementing AbstractStorage interface"""
-    _TABLE_NAME = 'servers'
+    _TABLE_NAME = 'hosts'
     _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS {0} ' \
-                    '(global_id integer PRIMARY KEY, server_id text, ' \
-                    'private_ip text, public_ip text, auth text, ' \
+                    '(global_id integer PRIMARY KEY, host_id text, ' \
+                    'host text, public_address text, auth text, ' \
                     'port text, alive integer, reserved integer)' \
         .format(_TABLE_NAME)
 
@@ -33,78 +33,77 @@ class SQLiteStorage(AbstractStorage):
         self._filename = db_filename
         self._create_table()
 
-    def get_servers(self, **filters):
+    def get_hosts(self, **filters):
         with sqlite3.connect(self._filename) as conn:
-            conn.row_factory = self._dict_factory
+            conn.row_factory = _dict_factory
             cursor = conn.cursor()
             if not filters:
                 cursor.execute('SELECT * FROM {0}'
                                .format(SQLiteStorage._TABLE_NAME))
             else:
-                sql_cond, values = self._get_sql_and_values_from_filters(
+                sql_cond, values = _get_sql_and_values_from_filters(
                     **filters)
                 cursor.execute('SELECT * FROM {0} WHERE {1}'
                                .format(SQLiteStorage._TABLE_NAME, sql_cond),
                                values)
-            result = cursor.fetchall()
-            return list(result)
+            return list(cursor.fetchall())
 
-    def add_server(self, server):
+    def add_host(self, host):
         with sqlite3.connect(self._filename) as conn:
             cursor = conn.cursor()
-            values = (server.get('server_id'), server['private_ip'],
-                      server.get('public_ip'), json.dumps(server['auth']),
-                      server['port'], server['alive'], server['reserved'])
-            cursor.execute('INSERT INTO {0} (server_id, private_ip, '
-                           'public_ip, auth, port, alive, reserved)'
+            values = (host.get('host_id'), host['host'],
+                      host.get('public_address'), json.dumps(host['auth']),
+                      host['port'], host['alive'], host['reserved'])
+            cursor.execute('INSERT INTO {0} (host_id, host, '
+                           'public_address, auth, port, alive, reserved)'
                            ' VALUES(?, ?, ?, ?, ?, ?, ?)'
                            .format(SQLiteStorage._TABLE_NAME), values)
-            server['global_id'] = cursor.lastrowid
+            host['global_id'] = cursor.lastrowid
 
-    def update_server(self, global_id, server):
-        if not server:
+    def update_host(self, global_id, host):
+        if not host:
             return None
         try:
             with sqlite3.connect(self._filename, isolation_level='EXCLUSIVE')\
                     as conn:
-                conn.row_factory = self._dict_factory
+                conn.row_factory = _dict_factory
                 conn.execute('BEGIN EXCLUSIVE')
                 cursor = conn.cursor()
-                values = tuple(server.itervalues())
-                sql_part = ", ".join('{0}=?'.format(s) for s in server)
+                values = tuple(host.itervalues())
+                sql_part = ", ".join('{0}=?'.format(s) for s in host)
                 cursor.execute('SELECT * FROM {0} WHERE global_id=?'
                                .format(SQLiteStorage._TABLE_NAME),
                                (global_id, ))
                 srv = cursor.fetchone()
-                if all(item in srv.iteritems() for item in server.iteritems()):
+                if all(item in srv.iteritems() for item in host.iteritems()):
                     return None
                 cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
                                .format(SQLiteStorage._TABLE_NAME, sql_part),
                                values + (global_id,))
-                srv.update(server)
+                srv.update(host)
                 return srv
         except sqlite3.OperationalError as e:
             if e.message == 'database is locked':
                 raise DBLockedError()
             raise DBError(e.message)
 
-    def get_server(self, **filters):
+    def get_host(self, **filters):
         if not filters:
             return None
         with sqlite3.connect(self._filename) as conn:
-            conn.row_factory = self._dict_factory
+            conn.row_factory = _dict_factory
             cursor = conn.cursor()
-            sql_part, values = self._get_sql_and_values_from_filters(**filters)
+            sql_part, values = _get_sql_and_values_from_filters(**filters)
             cursor.execute('SELECT * FROM {0} WHERE {1}'
                            .format(SQLiteStorage._TABLE_NAME, sql_part),
                            values)
             return cursor.fetchone()
 
-    def reserve_server(self, global_id):
+    def reserve_host(self, global_id):
         while True:
             try:
                 with sqlite3.connect(self._filename) as conn:
-                    conn.row_factory = self._dict_factory
+                    conn.row_factory = _dict_factory
                     conn.isolation_level = 'EXCLUSIVE'
                     conn.execute('BEGIN EXCLUSIVE')
                     cursor = conn.cursor()
@@ -126,20 +125,38 @@ class SQLiteStorage(AbstractStorage):
             cursor = conn.cursor()
             cursor.execute(SQLiteStorage._CREATE_TABLE)
 
-    def _dict_factory(self, cursor, row):
-        """ Create dictionary out of fetched row by db cursor"""
-        d = {}
-        for idx, col in enumerate(cursor.description):
-            if col[0] == 'auth':
-                # "auth" column value is dictionary serialized to string
-                # -> json.dumps(auth).
-                d[col[0]] = json.loads(row[idx])
-            else:
-                d[col[0]] = row[idx]
-        return d
 
-    def _get_sql_and_values_from_filters(self, **filters):
-        """ Helper method to create sql query """
-        values = tuple(filters.itervalues())
-        sql_part = ' AND '.join('{0}=?'.format(f) for f in filters)
-        return sql_part, values
+def _normalize_port(port):
+    try:
+        return int(port)    # just for elegance
+    except ValueError:
+        return str(port)
+
+
+_CUSTOM_PARSERS = {
+    # `auth` column's value is a dictionary serialized to a JSON string.
+    'auth': json.loads,
+    # By default SQLite returns `unicode` objects - those are not
+    # understood by `libc`.
+    'port': _normalize_port
+}
+
+
+def _dict_factory(cursor, row):
+    """ Create dictionary out of fetched row by db cursor"""
+    result = {}
+    for idx, col in enumerate(cursor.description):
+        name = col[0]
+        content = row[idx]
+        if name in _CUSTOM_PARSERS:
+            result[name] = _CUSTOM_PARSERS[name](content)
+        else:
+            result[name] = content
+    return result
+
+
+def _get_sql_and_values_from_filters(**filters):
+    """ Helper method to create sql query """
+    values = tuple(filters.itervalues())
+    sql_part = ' AND '.join('{0}=?'.format(f) for f in filters)
+    return sql_part, values

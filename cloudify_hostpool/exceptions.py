@@ -12,28 +12,39 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
+import abc
 
 
 class HostPoolHTTPException(Exception):
     """  An error raised by service modules to handle errors in REST API"""
+    __metaclass__ = abc.ABCMeta
 
+    @abc.abstractmethod
     def get_code(self):
-        pass
+        """
+        Return HTTP error code
+        :return: HTTP error code
+        """
 
+    @abc.abstractmethod
     def to_dict(self):
-        pass
+        """
+        Return exception data to dictionary
+        :return: dictionary with exception data
+        :rtype : dict
+        """
 
     def __str__(self):
         pass
 
 
 class NoResourcesError(HostPoolHTTPException):
-    """Raised when there is no servers left to be acquired"""
+    """Raised when there is no hosts left to be acquired"""
 
     def __init__(self):
         self.status_code = 515
-        self.text = "Cannot acquire server. " \
-                    "The pool is empty or all servers are in use."
+        self.text = "Cannot acquire host. " \
+                    "The pool is empty or all hosts are in use."
         super(NoResourcesError, self).__init__(self.__str__)
 
     def get_code(self):
@@ -47,19 +58,19 @@ class NoResourcesError(HostPoolHTTPException):
 
 
 class NotFoundError(HostPoolHTTPException):
-    """Raised when there is no server with requested id"""
+    """Raised when there is no host with requested id"""
 
-    def __init__(self, server_id):
+    def __init__(self, host_id):
         self.status_code = 404
-        self.text = "Cannot find requested server. "
-        self.server_id = server_id
+        self.text = "Cannot find requested host. "
+        self.host_id = host_id
         super(NotFoundError, self).__init__(self.__str__)
 
     def get_code(self):
         return self.status_code
 
     def to_dict(self):
-        return {'message': self.text, 'server_id': self.server_id}
+        return {'message': self.text, 'host_id': self.host_id}
 
     def __str__(self):
         return repr(self.text)
