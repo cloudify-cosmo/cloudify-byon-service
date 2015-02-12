@@ -16,50 +16,50 @@ import abc
 
 
 class AbstractRestBackend(object):
-    """ Interface for business logic layer of server acquisition and release"""
+    """ Interface for business logic layer of host acquisition and release"""
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def list_servers(self):
+    def list_hosts(self):
         """
-        List all allocated servers.
+        List all allocated hosts.
 
-        :return: server(dictionaries)
+        :return: host(dictionaries)
         :rtype: list of 'dict'
         """
 
     @abc.abstractmethod
-    def acquire_server(self):
+    def acquire_host(self):
         """
-        Server acquisition - schedule server acquisition first running server,
-        reserve it, if is still responsive it add acquisition server_id to
-        server and return it.
+        Host acquisition - schedule host acquisition first running host,
+        reserve it, if is still responsive it add acquisition host_id to
+        host and return it.
 
-        :raises NoResourcesError(HostPoolHTTPException): if no available
-        servers found
-        :return: server(dictionary) with server_id not None
+        :raises NoResourcesError(HostPoolHTTPException): if no available hosts
+        found
+        :return: host(dictionary) with host_id not None
         :rtype: dict
         """
 
     @abc.abstractmethod
-    def release_server(self, server_id):
+    def release_host(self, host_id):
         """
-        Release server with acquisition id given that is no longer needed.
-        Remove acquisition id (server_id) from given server.
+        Release host with acquisition id given that is no longer needed.
+        Remove acquisition id (host_id) from given host.
 
-        :raises NotFoundError(HostPoolHTTPException): if there is no server
-         with given id
-        :return: server(dictionary) that has been released
+        :raises NotFoundError(HostPoolHTTPException): if there is no host with
+        given id
+        :return: host(dictionary) that has been released
         :rtype: dict
         """
 
     @abc.abstractmethod
-    def get_server(self, server_id):
+    def get_host(self, host_id):
         """
-        Retrieve server details.
+        Retrieve host details.
 
-        :raises NotFoundError(HostPoolHTTPException): if there is no server
-        with given id
-        :return: requested server(dictionary) with server_id given
+        :raises NotFoundError(HostPoolHTTPException): if there is no host with
+        given id
+        :return: requested host(dictionary) with host_id given
         :rtype: dict
         """
