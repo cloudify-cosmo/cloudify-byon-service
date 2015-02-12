@@ -64,55 +64,56 @@ class ConfigurationTest(unittest.TestCase):
         ips = list(config._get_subnet_hosts(subnet, mask))
         self.assertEqual(len(ips), 6)
 
-    def test_add_servers_private_ip(self):
+    def test_add_hosts_host(self):
         hosts = [
-            dict(private_ip='2.2.2.1',
-                 auth={'username': 'ubuntu', 'pass': 'pass2', 'port': 22}),
-            dict(private_ip='2.2.2.2',
-                 auth={'username': 'ubuntu2', 'pass': 'pass2', 'port': 22})
+            dict(host='2.2.2.1', port=22,
+                 auth={'username': 'ubuntu', 'pass': 'pass2'}),
+            dict(host='2.2.2.2', port=22,
+                 auth={'username': 'ubuntu2', 'pass': 'pass2'})
         ]
-        saved_servers = list(config._add_servers(hosts))
-        self.assertEqual(len(saved_servers), len(hosts))
+        saved_hosts = list(config._add_hosts(hosts))
+        self.assertEqual(len(saved_hosts), len(hosts))
 
-    def test_add_servers_ip_range(self):
+    def test_add_hosts_ip_range(self):
         hosts = [
             dict(ip_range='2.2.2.8/29',
-                 auth={'username': 'ubuntu3', 'pass': 'pass2', 'port': 22})
+                 auth={'username': 'ubuntu3', 'pass': 'pass2'}, port=22)
         ]
-        saved_servers = list(config._add_servers(hosts))
-        self.assertEqual(len(saved_servers), 6)
+        saved_hosts = list(config._add_hosts(hosts))
+        self.assertEqual(len(saved_hosts), 6)
 
-    def test_add_servers_error(self):
+    def test_add_hosts_error(self):
         hosts = [
-            dict(auth={'username': 'ubuntu3', 'pass': 'pass2', 'port': 22})
+            dict(auth={'username': 'ubuntu3', 'pass': 'pass2'}, port=22)
         ]
         self.assertRaises(config.ConfigError,
-                          lambda: list(config._add_servers(hosts)))
+                          lambda: list(config._add_hosts(hosts)))
         hosts = [
             dict(ip='2.2.2.8',
-                 auth={'username': 'ubuntu3', 'pass': 'pass2', 'port': 22})
+                 auth={'username': 'ubuntu3', 'pass': 'pass2'}, port=22)
         ]
         self.assertRaises(config.ConfigError,
-                          lambda: list(config._add_servers(hosts)))
+                          lambda: list(config._add_hosts(hosts)))
         hosts = [
-            dict(private_ip='2.2.2.8',
+            dict(host='2.2.2.8',
+
                  auth={'username': 'ubuntu3', 'pass': 'pass2'})
         ]
         self.assertRaises(config.ConfigError,
-                          lambda: list(config._add_servers(hosts)))
+                          lambda: list(config._add_hosts(hosts)))
         hosts = [
             dict(ip_range='2.2.2.8/29')
         ]
         config.default_auth = dict(username='adam', password='eve')
         self.assertRaises(config.ConfigError,
-                          lambda: list(config._add_servers(hosts)))
+                          lambda: list(config._add_hosts(hosts)))
         config.default_auth = None
 
     def test_load_config(self):
         _file = os.path.join(
             os.path.abspath(os.path.dirname(__file__)), 'resources/pool.yaml')
-        loaded_servers = list(config.load_config(_file))
-        self.assertEqual(len(loaded_servers), 4)
+        loaded_hosts = list(config.load_config(_file))
+        self.assertEqual(len(loaded_hosts), 4)
 
     def test_bad_config(self):
         _file = StringIO.StringIO("bad_key: \nbad_key: test")
