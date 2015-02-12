@@ -25,66 +25,66 @@ class AbstractStorage(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def get_servers(self, **filters):
+    def get_hosts(self, **filters):
 
         """
-        Retrieves servers in the database that fit the given filters.
-        If no filters are supplied, all servers are returned.
+        Retrieves hosts in the database that fit the given filters.
+        If no filters are supplied, all hosts are returned.
 
         :param filters: a dictionary of filters to search by.
-        :return A list of servers.
+        :return A list of hosts.
         :rtype list of `dict`
 
         """
         pass
 
     @abc.abstractmethod
-    def add_server(self, server):
+    def add_host(self, host):
 
         """
-        Add a server to the database.
+        Add a host to the database.
 
-        :param server: The server to add (dictionary).
+        :param host: The host to add (dictionary).
 
         """
         pass
 
     @abc.abstractmethod
-    def update_server(self, global_id, server):
+    def update_host(self, global_id, host):
 
         """
-        Update a server with new values.
+        Update a host with new values.
 
-        :param global_id: The global id of the server.
-        :param server: The server dictionary containing the new values.
+        :param global_id: The global id of the host.
+        :param host: The host dictionary containing the new values.
 
-        :return  None if no change occurred, server otherwise.
+        :return  None if no change occurred, host otherwise.
         :rtype  dict
 
         """
         pass
 
     @abc.abstractmethod
-    def reserve_server(self, global_id):
+    def reserve_host(self, global_id):
 
         """
-        Change status of the given server(global_id) to 'reserved'.
+        Change status of the given host(global_id) to 'reserved'.
 
-        :param global_id: The global id of the server.
-        :return False if server has been already reserved, True otherwise.
+        :param global_id: The global id of the host.
+        :return False if host has been already reserved, True otherwise.
         :rtype boolean
 
         """
         pass
 
     @abc.abstractmethod
-    def get_server(self, **filters):
+    def get_host(self, **filters):
 
         """
-        Return the first server data that answers the filters.
+        Return the first host data that answers the filters.
 
         :param filters: a dictionary of filters to be applied on the result.
-        :return The server.
+        :return The host.
         :rtype dict
 
         """
