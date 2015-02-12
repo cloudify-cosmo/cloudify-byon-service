@@ -35,19 +35,18 @@ class SQLiteStorage(AbstractStorage):
 
     def get_hosts(self, **filters):
         with sqlite3.connect(self._filename) as conn:
-            conn.row_factory = self._dict_factory
+            conn.row_factory = _dict_factory
             cursor = conn.cursor()
             if not filters:
                 cursor.execute('SELECT * FROM {0}'
                                .format(SQLiteStorage._TABLE_NAME))
             else:
-                sql_cond, values = self._get_sql_and_values_from_filters(
+                sql_cond, values = _get_sql_and_values_from_filters(
                     **filters)
                 cursor.execute('SELECT * FROM {0} WHERE {1}'
                                .format(SQLiteStorage._TABLE_NAME, sql_cond),
                                values)
-            result = cursor.fetchall()
-            return list(result)
+            return list(cursor.fetchall())
 
     def add_host(self, host):
         with sqlite3.connect(self._filename) as conn:
@@ -67,7 +66,7 @@ class SQLiteStorage(AbstractStorage):
         try:
             with sqlite3.connect(self._filename, isolation_level='EXCLUSIVE')\
                     as conn:
-                conn.row_factory = self._dict_factory
+                conn.row_factory = _dict_factory
                 conn.execute('BEGIN EXCLUSIVE')
                 cursor = conn.cursor()
                 values = tuple(host.itervalues())
@@ -92,9 +91,9 @@ class SQLiteStorage(AbstractStorage):
         if not filters:
             return None
         with sqlite3.connect(self._filename) as conn:
-            conn.row_factory = self._dict_factory
+            conn.row_factory = _dict_factory
             cursor = conn.cursor()
-            sql_part, values = self._get_sql_and_values_from_filters(**filters)
+            sql_part, values = _get_sql_and_values_from_filters(**filters)
             cursor.execute('SELECT * FROM {0} WHERE {1}'
                            .format(SQLiteStorage._TABLE_NAME, sql_part),
                            values)
@@ -104,7 +103,7 @@ class SQLiteStorage(AbstractStorage):
         while True:
             try:
                 with sqlite3.connect(self._filename) as conn:
-                    conn.row_factory = self._dict_factory
+                    conn.row_factory = _dict_factory
                     conn.isolation_level = 'EXCLUSIVE'
                     conn.execute('BEGIN EXCLUSIVE')
                     cursor = conn.cursor()
@@ -126,20 +125,28 @@ class SQLiteStorage(AbstractStorage):
             cursor = conn.cursor()
             cursor.execute(SQLiteStorage._CREATE_TABLE)
 
-    def _dict_factory(self, cursor, row):
-        """ Create dictionary out of fetched row by db cursor"""
-        d = {}
-        for idx, col in enumerate(cursor.description):
-            if col[0] == 'auth':
-                # "auth" column value is dictionary serialized to string
-                # -> json.dumps(auth).
-                d[col[0]] = json.loads(row[idx])
-            else:
-                d[col[0]] = row[idx]
-        return d
 
-    def _get_sql_and_values_from_filters(self, **filters):
-        """ Helper method to create sql query """
-        values = tuple(filters.itervalues())
-        sql_part = ' AND '.join('{0}=?'.format(f) for f in filters)
-        return sql_part, values
+_CUSTOM_PARSERS = {
+    # `auth` column's value is a dictionary serialized to a JSON string.
+    'auth': json.loads
+}
+
+
+def _dict_factory(cursor, row):
+    """ Create dictionary out of fetched row by db cursor"""
+    result = {}
+    for idx, col in enumerate(cursor.description):
+        name = col[0]
+        content = row[idx]
+        if name in _CUSTOM_PARSERS:
+            result[name] = _CUSTOM_PARSERS[name](content)
+        else:
+            result[name] = content
+    return result
+
+
+def _get_sql_and_values_from_filters(**filters):
+    """ Helper method to create sql query """
+    values = tuple(filters.itervalues())
+    sql_part = ' AND '.join('{0}=?'.format(f) for f in filters)
+    return sql_part, values
