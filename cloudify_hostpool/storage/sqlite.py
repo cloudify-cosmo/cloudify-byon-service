@@ -126,9 +126,19 @@ class SQLiteStorage(AbstractStorage):
             cursor.execute(SQLiteStorage._CREATE_TABLE)
 
 
+def _normalize_port(port):
+    try:
+        return int(port)    # just for elegance
+    except ValueError:
+        return str(port)
+
+
 _CUSTOM_PARSERS = {
     # `auth` column's value is a dictionary serialized to a JSON string.
-    'auth': json.loads
+    'auth': json.loads,
+    # By default SQLite returns `unicode` objects - those are not
+    # understood by `libc`.
+    'port': _normalize_port
 }
 
 
