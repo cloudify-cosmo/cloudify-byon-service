@@ -20,33 +20,35 @@ import yaml
 
 from cloudify_hostpool.exceptions import ConfigError
 
-default_auth = None
+default = dict(auth=None, port=None)
 
 
 def load_config(file_name):
     """ Main function loading config from YAML and returning
-    generator of server dictionaries.
+    generator of hosts dictionaries.
 
     :param file_name: name of file where pool configuration is provided
 
-    :return server_generator: generator of server dictionaries
+    :return host_generator: generator of host dictionaries
     """
     with open(file_name, 'r') as config_file:
         config = yaml.load(config_file)
     if config is None:
         raise ConfigError("Empty config")
-    _set_default_auth(config)
+    _set_default(config)
     if config.get('hosts'):
-        return _add_servers(config.get('hosts'))
+        return _add_hosts(config.get('hosts'))
     else:
         raise ConfigError("Unsupported key in configuration")
 
 
-def _set_default_auth(config):
-    default = config.get('default')
-    global default_auth
+def _set_default(config):
+    _default = config.get('default') \
+        if config.get('default') is not None else {}
+    global default
     if default is not None:
-        default_auth = default.get('auth')
+        default['auth'] = _default.get('auth')
+        default['port'] = _default.get('port')
 
 
 def _ip2long(ip):
@@ -79,7 +81,7 @@ def _get_subnet_and_mask(ip_range):
 
 
 def _get_subnet_hosts(subnet, mask):
-    """ Subnet hosts generator. Yields each server address given in ip range.
+    """ Subnet hosts generator. Yields each host address given in ip range.
     """
     bin_sub = _ip2long(subnet)
     bin_broadcast = _get_broadcast_long(subnet, mask)
@@ -87,55 +89,59 @@ def _get_subnet_hosts(subnet, mask):
         yield _long2ip(address)
 
 
-def _validate_config_auth(auth):
-    mandatory_keys = ['username', 'port']
-    if not all(key in auth.iterkeys() for key in mandatory_keys):
-        raise ConfigError("Error in authorization")
-
-
-def _get_auth(server):
-    if server.get('auth') is not None:
-        auth = dict(server['auth'])
-    elif default_auth:
-        auth = dict(default_auth)
+def _get_auth(host):
+    if host.get('auth') is not None:
+        auth = dict(host['auth'])
+    elif default['auth']:
+        auth = default['auth']
     else:
         raise ConfigError("No authorization given")
-    _validate_config_auth(auth)
     return auth
 
 
-def _add_servers(servers):
-    """ Add server to database creating the server structure (dictionary)
-        server = {
-            'public_ip': ip address or hostname,
-            'private_ip': ip address or hostname,
+def _get_port(host):
+    if host.get('port') is not None:
+        port = host['port']
+    elif default['port']:
+        port = default['port']
+    else:
+        raise ConfigError("No port given")
+    return port
+
+
+def _add_hosts(hosts):
+    """ Create structured host generator (dictionary)
+        host = {
+            'public_ip': ip address or hostname (optional),
+            'host': ip address or hostname,
             'port': port to communicate to,
             'auth': a dictionary with 'username' and 'keyfile' or 'password',
-            'alive': flag that will inform if this server has been reachable
+            'alive': flag that will inform if this host has been reachable
             recently,
-            'reserved': flag informing if this server is to be assigned at the
+            'reserved': flag informing if this host is to be assigned at the
             moment
         }
     """
-    for server in servers:
-        if server.get('private_ip') is not None:
-            server['alive'] = False
-            server['reserved'] = False
-            server['auth'] = _get_auth(server)
-            server['port'] = server['auth'].pop('port')
-            yield server
-        elif server.get('ip_range') is not None:
-            subnet, mask = _get_subnet_and_mask(server.pop('ip_range'))
-            servers_list_gen = _get_subnet_hosts(subnet, mask)
-            for server_ip in servers_list_gen:
-                auth = _get_auth(server)
-                _server = dict(server)
-                s = dict(private_ip=server_ip,
+    for host in hosts:
+        if host.get('host') is not None:
+            host['alive'] = False
+            host['reserved'] = False
+            host['auth'] = _get_auth(host)
+            host['port'] = _get_port(host)
+            yield host
+        elif host.get('ip_range') is not None:
+            subnet, mask = _get_subnet_and_mask(host.pop('ip_range'))
+            hosts_list_gen = _get_subnet_hosts(subnet, mask)
+            for host_ip in hosts_list_gen:
+                auth = _get_auth(host)
+                port = _get_port(host)
+                _host = dict(host)
+                s = dict(host=host_ip,
                          auth=auth,
                          alive=False,
                          reserved=False,
-                         port=auth.pop('port'))
-                _server.update(s)
-                yield _server
+                         port=port)
+                _host.update(s)
+                yield _host
         else:
             raise ConfigError("Unsupported key in hosts configuration")

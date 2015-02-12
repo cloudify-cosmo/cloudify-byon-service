@@ -18,134 +18,133 @@ from cloudify_hostpool.tests.storage import test_sqlite_base
 class SQLiteTest(test_sqlite_base.SQLiteTest):
 
     def test_get_all_empty(self):
-        result = self.db.get_servers()
+        result = self.db.get_hosts()
         self.assertEqual(result, [])
 
-    def test_add_server(self):
-        server = {
-            'private_ip': '127.0.0.1',
-            'public_ip': '127.0.0.1',
+    def test_add_host(self):
+        host = {
+            'host': '127.0.0.1',
+            'public_address': '127.0.0.1',
             'port': '22',
             'auth': None,
-            'server_id': None,
+            'host_id': None,
             'alive': False,
             'reserved': False
         }
-        self.db.add_server(server)
-        result = self.db.get_servers()
+        self.db.add_host(host)
+        result = self.db.get_hosts()
         self.assertEqual(len(result), 1)
-        db_server = result[0]
-        self.assertEqual(db_server, server)
+        db_host = result[0]
+        self.assertEqual(db_host, host)
 
-    def test_add_bad_server(self):
-        server = {
+    def test_add_bad_host(self):
+        host = {
             'port': '22',
             'auth': None,
-            'server_id': None,
+            'host_id': None,
             'alive': False,
             'reserved': False
         }
-        self.assertRaises(KeyError, self.db.add_server, server)
+        self.assertRaises(KeyError, self.db.add_host, host)
 
-    def test_get_filtered_servers(self):
-        self._add_servers()
+    def test_get_filtered_hosts(self):
+        self._add_hosts()
 
-        result = self.db.get_servers()
-        self.assertEqual(len(result), len(self.server_list))
+        result = self.db.get_hosts()
+        self.assertEqual(len(result), len(self.host_list))
 
-        result = self.db.get_servers(port='1000')
+        result = self.db.get_hosts(port='1000')
         self.assertEqual(len(result), 2)
 
-        result = self.db.get_servers(alive=True)
+        result = self.db.get_hosts(alive=True)
         self.assertEqual(len(result), 2)
 
-        result = self.db.get_servers(alive=True, port='1000')
+        result = self.db.get_hosts(alive=True, port='1000')
         self.assertEqual(len(result), 1)
 
-    def test_update_server(self):
-        self.assertIsNone(self.db.update_server('whatever', None))
+    def test_update_host(self):
+        self.assertIsNone(self.db.update_host('whatever', None))
 
-        self._add_servers()
-        result = self.db.get_servers()
-        server = result[0]
-        server_update = {
+        self._add_hosts()
+        result = self.db.get_hosts()
+        host = result[0]
+        host_update = {
             'reserved': True
         }
-        updated_server = self.db.update_server(server['global_id'],
-                                               server_update)
-        self.assertEqual(updated_server['global_id'], server['global_id'])
-        self.assertNotEqual(updated_server['reserved'], server['reserved'])
-        self.assertEqual(updated_server['reserved'],
-                         server_update['reserved'])
-        updated_server2 = self.db.update_server(server['global_id'],
-                                                server_update)
-        self.assertIsNone(updated_server2)
+        updated_host = self.db.update_host(host['global_id'], host_update)
+        self.assertEqual(updated_host['global_id'], host['global_id'])
+        self.assertNotEqual(updated_host['reserved'], host['reserved'])
+        self.assertEqual(updated_host['reserved'], host_update['reserved'])
+        updated_host2 = self.db.update_host(host['global_id'], host_update)
+        self.assertIsNone(updated_host2)
 
-    def test_get_server_global_id(self):
-        self._add_servers()
-        servers = self.db.get_servers()
-        db_server = servers[0]
-        server = self.db.get_server(global_id=db_server['global_id'])
-        self.assertEqual(db_server, server)
+    def test_get_host_global_id(self):
+        self._add_hosts()
+        hosts = self.db.get_hosts()
+        db_host = hosts[0]
+        host = self.db.get_host(global_id=db_host['global_id'])
+        self.assertEqual(db_host, host)
+        host = self.db.get_host(global_id=10)
+        self.assertIsNone(host)
 
-    def test_get_server_filter(self):
-        self._add_servers()
-        servers = self.db.get_servers()
-        db_server = servers[0]
-        # it should return first alive server
-        server = self.db.get_server(alive=True)
-        self.assertEqual(db_server, server)
+    def test_get_host_filter(self):
+        self._add_hosts()
+        hosts = self.db.get_hosts()
+        db_host = hosts[0]
+        # it should return first alive host
+        host = self.db.get_host(alive=True)
+        self.assertEqual(db_host, host)
 
-    def test_reserve_server(self):
-        self._add_servers()
-        servers = self.db.get_servers()
-        db_server = servers[0]
+    def test_reserve_host(self):
+        self._add_hosts()
+        hosts = self.db.get_hosts()
+        db_host = hosts[0]
 
-        result = self.db.reserve_server(db_server['global_id'])
+        result = self.db.reserve_host(db_host['global_id'])
         self.assertTrue(result)
 
-        result = self.db.reserve_server(db_server['global_id'])
+        result = self.db.reserve_host(db_host['global_id'])
         self.assertFalse(result)
 
-        server = self.db.get_server(global_id=db_server['global_id'])
-        self.assertEqual(db_server['private_ip'], server['private_ip'])
-        self.assertEqual(db_server['port'], server['port'])
-        self.assertEqual(db_server['auth'], server['auth'])
-        self.assertEqual(db_server['server_id'], server['server_id'])
-        self.assertEqual(db_server['alive'], server['alive'])
-        self.assertNotEqual(db_server['reserved'], server['reserved'])
-        self.assertTrue(server['reserved'])
-        self.assertEqual(db_server['global_id'], server['global_id'])
+        host = self.db.get_host(global_id=db_host['global_id'])
+        self.assertEqual(db_host['host'], host['host'])
+        self.assertEqual(db_host['port'], host['port'])
+        self.assertEqual(db_host['auth'], host['auth'])
+        self.assertEqual(db_host['host_id'], host['host_id'])
+        self.assertEqual(db_host['alive'], host['alive'])
+        self.assertNotEqual(db_host['reserved'], host['reserved'])
+        self.assertTrue(host['reserved'])
+        self.assertEqual(db_host['global_id'], host['global_id'])
 
-    def _add_servers(self):
-        self.server_list = [
+    def _add_hosts(self):
+        self.host_list = [
             {
-                'private_ip': '127.0.0.1',
-                'public_ip': '127.0.0.1',
+                'host': '127.0.0.1',
+                'public_address': '127.0.0.1',
                 'port': '22',
                 'auth': None,
-                'server_id': None,
+                'host_id': None,
                 'alive': True,
                 'reserved': False
             },
             {
-                'private_ip': '127.0.0.1',
-                'public_ip': '127.0.0.1',
+                'host': '127.0.0.1',
+                'public_address': '127.0.0.1',
                 'port': '1000',
                 'auth': None,
-                'server_id': None,
+                'host_id': None,
                 'alive': False,
                 'reserved': False
             },
             {
-                'private_ip': '10.0.0.1',
-                'public_ip': '10.0.0.1',
+                'host': '10.0.0.1',
+                'public_address': '10.0.0.1',
                 'port': '1000',
                 'auth': None,
-                'server_id': None,
+                'host_id': None,
                 'alive': True,
                 'reserved': False
             }
         ]
-        for server in self.server_list:
-            self.db.add_server(server)
+        for host in self.host_list:
+            self.db.add_host(host)
