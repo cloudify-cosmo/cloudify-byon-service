@@ -27,7 +27,7 @@ class SQLiteTestThreading(test_sqlite_base.SQLiteTest):
         DBLockError, check if this host was changed only one time.
         """
         self._add_host()
-        host = self.db.get_host(host='127.0.0.1')
+        host = self.db.get_host([sqlite.Filter('host', '127.0.0.1')])
         results = Queue()
         thr = []
         exceptions = Queue()
@@ -58,7 +58,7 @@ class SQLiteTestThreading(test_sqlite_base.SQLiteTest):
         DBLockError, check if this host was changed only one time.
         """
         self._add_host()
-        host = self.db.get_host(host='127.0.0.1')
+        host = self.db.get_host([sqlite.Filter('host', '127.0.0.1')])
         update = dict(public_address='127.0.5.1', port=23, alive=False)
         results = Queue()
         thr = []

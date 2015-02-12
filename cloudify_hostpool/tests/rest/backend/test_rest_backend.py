@@ -89,7 +89,7 @@ class RestBackendTest(unittest.TestCase):
         host_id = 'test'
         self.db.update_host(1, dict(host_id=host_id))
         host = self.rest_backend.get_host(host_id)
-        reference = self.db.get_host(global_id=1)
+        reference = self.db.get_host([sqlite.Filter('global_id', 1)])
         self.assertEqual(host, reference)
 
     @patch('cloudify_hostpool.config.config.load_config')

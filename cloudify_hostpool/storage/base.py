@@ -25,7 +25,7 @@ class AbstractStorage(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def get_hosts(self, **filters):
+    def get_hosts(self, filters=None):
 
         """
         Retrieves hosts in the database that fit the given filters.
@@ -78,7 +78,7 @@ class AbstractStorage(object):
         pass
 
     @abc.abstractmethod
-    def get_host(self, **filters):
+    def get_host(self, filters=None):
 
         """
         Return the first host data that answers the filters.

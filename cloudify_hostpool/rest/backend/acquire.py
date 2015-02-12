@@ -17,6 +17,7 @@
 import uuid
 
 from cloudify_hostpool.backend import scan
+from cloudify_hostpool.storage import sqlite
 
 
 def acquire(db):
@@ -48,7 +49,8 @@ def acquire(db):
 
 def _aquisition_gen(db):
     for alive in True, False:
-        for host in db.get_host(reserved=False, alive=alive):
+        for host in db.get_host([sqlite.Filter('reserved', False),
+                                 sqlite.Filter(alive=alive)]):
             if host.get('host') is None:
                 yield host
 
