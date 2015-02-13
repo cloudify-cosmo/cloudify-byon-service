@@ -12,12 +12,41 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
+import os
+import sqlite3
+import tempfile
+import unittest
 
+from cloudify_hostpool.storage import sqlite
 from cloudify_hostpool.storage.sqlite import Filter
-from cloudify_hostpool.tests.storage import test_sqlite_base
 
 
-class SQLiteTest(test_sqlite_base.SQLiteTest):
+class SQLiteTest(unittest.TestCase):
+    db = None
+    tempfile = None
+    server_list = None
+
+    @classmethod
+    def setUpClass(cls):
+        fd, cls.tempfile = tempfile.mkstemp()
+        os.close(fd)
+        cls.db = sqlite.SQLiteStorage(cls.tempfile)
+
+    @classmethod
+    def tearDownClass(cls):
+        if cls.tempfile is not None:
+            os.unlink(cls.tempfile)
+            cls.tempfile = None
+
+    def setUp(self):
+        self.db = sqlite.SQLiteStorage(self.tempfile)
+
+    def tearDown(self):
+        with sqlite3.connect(self.tempfile) as conn:
+            cursor = conn.cursor()
+            cursor.execute('DROP TABLE {0}'
+                           .format(sqlite.SQLiteStorage._TABLE_NAME))
+            self.db = None
 
     def test_get_all_empty(self):
         result = self.db.get_hosts()
