@@ -42,17 +42,20 @@ def acquire(db):
     else:
         return None
     host = db.update_host(host['global_id'],
-                          {'host': str(uuid.uuid4()),
+                          {'host_id': str(uuid.uuid4()),
                            'reserved': False})
     return host
 
 
 def _aquisition_gen(db):
     for alive in True, False:
-        for host in db.get_host([sqlite.Filter('reserved', False),
-                                 sqlite.Filter(alive=alive)]):
-            if host.get('host') is None:
-                yield host
+        hosts = db.get_hosts([sqlite.Filter('reserved', False),
+                              sqlite.Filter('alive', alive),
+                              sqlite.Filter('host_id',
+                                            None,
+                                            sqlite.Filter.IS)])
+        for host in hosts:
+            yield host
 
 
 def _check_if_alive(db, host):

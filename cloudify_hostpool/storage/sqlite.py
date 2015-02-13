@@ -130,6 +130,7 @@ class Filter(object):
     NOT_IN = ' NOT IN '
     IS_NOT = ' IS NOT '
     EQUAL = '='
+    IS = ' IS '
 
     def __init__(self, field, value, operand=EQUAL):
         self.field = field
