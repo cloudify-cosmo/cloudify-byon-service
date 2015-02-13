@@ -23,7 +23,7 @@ from cloudify_hostpool.exceptions import DBLockedError
 class SQLiteStorage(AbstractStorage):
     """ Storage wrapper for SQLite DB implementing AbstractStorage interface"""
     _TABLE_NAME = 'hosts'
-    _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS {0} ' \
+    _CREATE_TABLE = 'CREATE TABLE {0} ' \
                     '(global_id integer PRIMARY KEY, host_id text, ' \
                     'host text, public_address text, auth text, ' \
                     'port text, alive integer, reserved integer)' \
@@ -31,7 +31,11 @@ class SQLiteStorage(AbstractStorage):
 
     def __init__(self, db_filename):
         self._filename = db_filename
-        self._create_table()
+        try:
+            self._create_table()
+            self.db_creation_successful = True
+        except DBError:
+            self.db_creation_successful = False
 
     def get_hosts(self, filters=None):
         with sqlite3.connect(self._filename) as conn:
@@ -120,9 +124,12 @@ class SQLiteStorage(AbstractStorage):
                     raise DBError(e.message)
 
     def _create_table(self):
-        with sqlite3.connect(self._filename) as conn:
-            cursor = conn.cursor()
-            cursor.execute(SQLiteStorage._CREATE_TABLE)
+        try:
+            with sqlite3.connect(self._filename) as conn:
+                cursor = conn.cursor()
+                cursor.execute(SQLiteStorage._CREATE_TABLE)
+        except sqlite3.OperationalError as e:
+            raise DBError(e.message)
 
 
 class Filter(object):
