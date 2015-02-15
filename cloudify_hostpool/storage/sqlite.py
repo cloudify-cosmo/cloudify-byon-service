@@ -22,10 +22,10 @@ from cloudify_hostpool.exceptions import DBLockedError
 
 class SQLiteStorage(AbstractStorage):
     """ Storage wrapper for SQLite DB implementing AbstractStorage interface"""
-    _TABLE_NAME = 'servers'
+    _TABLE_NAME = 'hosts'
     _CREATE_TABLE = 'CREATE TABLE IF NOT EXISTS {0} ' \
-                    '(global_id integer PRIMARY KEY, server_id text, ' \
-                    'private_ip text, public_ip text, auth text, ' \
+                    '(global_id integer PRIMARY KEY, host_id text, ' \
+                    'host text, public_address text, auth text, ' \
                     'port text, alive integer, reserved integer)' \
         .format(_TABLE_NAME)
 
@@ -33,7 +33,7 @@ class SQLiteStorage(AbstractStorage):
         self._filename = db_filename
         self._create_table()
 
-    def get_servers(self, **filters):
+    def get_hosts(self, **filters):
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = self._dict_factory
             cursor = conn.cursor()
@@ -49,20 +49,20 @@ class SQLiteStorage(AbstractStorage):
             result = cursor.fetchall()
             return list(result)
 
-    def add_server(self, server):
+    def add_host(self, host):
         with sqlite3.connect(self._filename) as conn:
             cursor = conn.cursor()
-            values = (server.get('server_id'), server['private_ip'],
-                      server.get('public_ip'), json.dumps(server['auth']),
-                      server['port'], server['alive'], server['reserved'])
-            cursor.execute('INSERT INTO {0} (server_id, private_ip, '
-                           'public_ip, auth, port, alive, reserved)'
+            values = (host.get('host_id'), host['host'],
+                      host.get('public_address'), json.dumps(host['auth']),
+                      host['port'], host['alive'], host['reserved'])
+            cursor.execute('INSERT INTO {0} (host_id, host, '
+                           'public_address, auth, port, alive, reserved)'
                            ' VALUES(?, ?, ?, ?, ?, ?, ?)'
                            .format(SQLiteStorage._TABLE_NAME), values)
-            server['global_id'] = cursor.lastrowid
+            host['global_id'] = cursor.lastrowid
 
-    def update_server(self, global_id, server):
-        if not server:
+    def update_host(self, global_id, host):
+        if not host:
             return None
         try:
             with sqlite3.connect(self._filename, isolation_level='EXCLUSIVE')\
@@ -70,25 +70,25 @@ class SQLiteStorage(AbstractStorage):
                 conn.row_factory = self._dict_factory
                 conn.execute('BEGIN EXCLUSIVE')
                 cursor = conn.cursor()
-                values = tuple(server.itervalues())
-                sql_part = ", ".join('{0}=?'.format(s) for s in server)
+                values = tuple(host.itervalues())
+                sql_part = ", ".join('{0}=?'.format(s) for s in host)
                 cursor.execute('SELECT * FROM {0} WHERE global_id=?'
                                .format(SQLiteStorage._TABLE_NAME),
                                (global_id, ))
-                srv = cursor.fetchone()
-                if all(item in srv.iteritems() for item in server.iteritems()):
+                hst = cursor.fetchone()
+                if all(item in hst.iteritems() for item in host.iteritems()):
                     return None
                 cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
                                .format(SQLiteStorage._TABLE_NAME, sql_part),
                                values + (global_id,))
-                srv.update(server)
-                return srv
+                hst.update(host)
+                return hst
         except sqlite3.OperationalError as e:
             if e.message == 'database is locked':
                 raise DBLockedError()
             raise DBError(e.message)
 
-    def get_server(self, **filters):
+    def get_host(self, **filters):
         if not filters:
             return None
         with sqlite3.connect(self._filename) as conn:
@@ -100,7 +100,7 @@ class SQLiteStorage(AbstractStorage):
                            values)
             return cursor.fetchone()
 
-    def reserve_server(self, global_id):
+    def reserve_host(self, global_id):
         while True:
             try:
                 with sqlite3.connect(self._filename) as conn:

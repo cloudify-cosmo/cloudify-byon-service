@@ -24,17 +24,17 @@ class SQLiteTestThreading(test_sqlite_base.SQLiteTest):
     def test_reserving(self):
         """
         Test spawning 1000 threads and checking if more than 0 has raised
-        DBLockError, check if this server was changed only one time.
+        DBLockError, check if this host was changed only one time.
         """
-        self._add_server()
-        server = self.db.get_server(private_ip='127.0.0.1')
+        self._add_host()
+        host = self.db.get_host(host='127.0.0.1')
         results = Queue()
         thr = []
         exceptions = Queue()
         thread_number = 100
         for x in xrange(thread_number):
             t = threading.Thread(
-                target=self._reserve, args=(server['global_id'], results,
+                target=self._reserve, args=(host['global_id'], results,
                                             exceptions))
             t.start()
             thr.append(t)
@@ -55,18 +55,18 @@ class SQLiteTestThreading(test_sqlite_base.SQLiteTest):
     def test_updating(self):
         """
         Test spawning 1000 threads and checking if more than 0 has raised
-        DBLockError, check if this server was changed only one time.
+        DBLockError, check if this host was changed only one time.
         """
-        self._add_server()
-        server = self.db.get_server(private_ip='127.0.0.1')
-        update = dict(public_ip='127.0.5.1', port='23', alive=False)
+        self._add_host()
+        host = self.db.get_host(host='127.0.0.1')
+        update = dict(public_address='127.0.5.1', port='23', alive=False)
         results = Queue()
         thr = []
         exceptions = Queue()
         thread_number = 1000
         for x in xrange(thread_number):
             t = threading.Thread(
-                target=self._update, args=(server['global_id'], update,
+                target=self._update, args=(host['global_id'], update,
                                            results, exceptions))
             t.start()
             thr.append(t)
@@ -86,17 +86,17 @@ class SQLiteTestThreading(test_sqlite_base.SQLiteTest):
 
     def _reserve(self, g_id, results, exceptions):
         try:
-            results.put(self.db.reserve_server(g_id))
+            results.put(self.db.reserve_host(g_id))
         except sqlite.DBError:
             exceptions.put(True)
 
     def _update(self, g_id, update, results, exceptions):
         try:
-            results.put(self.db.update_server(g_id, update))
+            results.put(self.db.update_host(g_id, update))
         except sqlite.DBLockedError:
             exceptions.put(True)
 
-    def _add_server(self):
-        server = dict(private_ip='127.0.0.1', public_ip='127.0.0.1', port='22',
-                      auth=None, server_id=None, alive=True, reserved=False)
-        self.db.add_server(server)
+    def _add_host(self):
+        host = dict(host='127.0.0.1', public_address='127.0.0.1', port='22',
+                    auth=None, host_id=None, alive=True, reserved=False)
+        self.db.add_host(host)
