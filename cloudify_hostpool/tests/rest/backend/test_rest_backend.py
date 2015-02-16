@@ -28,21 +28,23 @@ class RestBackendTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        fd, cls.tempfile = tempfile.mkstemp()
+        fd, cls.db_file = tempfile.mkstemp()
         os.close(fd)
-        cls.db = sqlite.SQLiteStorage(cls.tempfile)
+        fd, cls.cfg_file = tempfile.mkstemp()
+        os.close(fd)
 
     @classmethod
     def tearDownClass(cls):
-        if cls.tempfile is not None:
-            os.unlink(cls.tempfile)
-            cls.tempfile = None
+        os.unlink(cls.db_file)
+        cls.db_file = None
+        os.unlink(cls.cfg_file)
+        cls.cfg_file = None
 
     def setUp(self):
-        self.db = sqlite.SQLiteStorage(self.tempfile)
+        self.db = sqlite.SQLiteStorage(self.db_file)
 
     def tearDown(self):
-        with sqlite3.connect(self.tempfile) as conn:
+        with sqlite3.connect(self.db_file) as conn:
             cursor = conn.cursor()
             cursor.execute('DROP TABLE {0}'
                            .format(sqlite.SQLiteStorage._TABLE_NAME))
@@ -52,7 +54,7 @@ class RestBackendTest(unittest.TestCase):
     def test_list_hosts(self, mock_config):
         mock_config.return_value = []
         self._add_hosts()
-        self.rest_backend = RestBackend(self.tempfile, 'test')
+        self.rest_backend = RestBackend(self.db_file, self.cfg_file)
         self.rest_backend.storage = self.db
         self.assertEqual(len(self.rest_backend.list_hosts()), 1)
 
@@ -60,7 +62,7 @@ class RestBackendTest(unittest.TestCase):
     def test_release_host(self, mock_config):
         mock_config.return_value = []
         self._add_hosts()
-        self.rest_backend = RestBackend(self.tempfile, 'test')
+        self.rest_backend = RestBackend(self.db_file, self.cfg_file)
         self.rest_backend.storage = self.db
         host_id = 'test'
         self.db.update_host(1, dict(host_id=host_id))
@@ -71,7 +73,7 @@ class RestBackendTest(unittest.TestCase):
     def test_release_host_error(self, mock_config):
         mock_config.return_value = []
         self._add_hosts()
-        self.rest_backend = RestBackend(self.tempfile, 'test')
+        self.rest_backend = RestBackend(self.db_file, self.cfg_file)
         self.rest_backend.storage = self.db
         host_id = 'test'
         self.assertRaises(NotFoundError,
@@ -81,7 +83,7 @@ class RestBackendTest(unittest.TestCase):
     def test_get_host(self, mock_config):
         mock_config.return_value = []
         self._add_hosts()
-        self.rest_backend = RestBackend(self.tempfile, 'test')
+        self.rest_backend = RestBackend(self.db_file, 'test')
         self.rest_backend.storage = self.db
         host_id = 'test'
         self.db.update_host(1, dict(host_id=host_id))
@@ -93,7 +95,7 @@ class RestBackendTest(unittest.TestCase):
     def test_get_host_error(self, mock_config):
         mock_config.return_value = []
         self._add_hosts()
-        self.rest_backend = RestBackend(self.tempfile, 'test')
+        self.rest_backend = RestBackend(self.db_file, 'test')
         self.rest_backend.storage = self.db
         host_id = 'test'
         self.assertRaises(NotFoundError,
