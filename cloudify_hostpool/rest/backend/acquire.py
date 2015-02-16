@@ -57,8 +57,8 @@ def _check_if_alive(db, host):
     address, port = host['host'], host['port']
     results = scan.scan([(address, port)])
     is_alive = results[address, port]
-    srv = db.update_host(host['global_id'], {'alive': is_alive})
-    if srv is None:
+    hst = db.update_host(host['global_id'], {'alive': is_alive})
+    if hst is None:
         return host
     else:
-        return srv
+        return hst
