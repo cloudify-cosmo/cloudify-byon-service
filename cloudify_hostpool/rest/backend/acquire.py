@@ -41,7 +41,7 @@ def acquire(db):
     else:
         return None
     host = db.update_host(host['global_id'],
-                          {'host': str(uuid.uuid4()),
+                          {'host_id': str(uuid.uuid4()),
                            'reserved': False})
     return host
 
@@ -49,7 +49,7 @@ def acquire(db):
 def _aquisition_gen(db):
     for alive in True, False:
         for host in db.get_host(reserved=False, alive=alive):
-            if host.get('host') is None:
+            if host.get('host_id') is None:
                 yield host
 
 
