@@ -56,8 +56,8 @@ class SplitTests(unittest.TestCase):
         resource limits.
         '''
         rng = int(self._patches['fd_res_lim'].new.return_value[0] * 5)
-        lim = int(scan._file_descriptor_resource_limit()
-                  * scan._MAGIC_NUMBER_SPLIT_UPPER_THRESHOLD)
+        lim = int(scan._file_descriptor_resource_limit() *
+                  scan._MAGIC_NUMBER_SPLIT_UPPER_THRESHOLD)
         for l in scan._split(range(rng)):
             self.assertLessEqual(len(l), lim)
 
@@ -84,10 +84,10 @@ class SplitTests(unittest.TestCase):
         Checks whether length of individual chunks is always 1
         after FD limit is exceeded.
         '''
-        lim_u = int(scan._file_descriptor_resource_limit()
-                    * scan._MAGIC_NUMBER_SPLIT_UPPER_THRESHOLD)
-        lim_l = int(scan._file_descriptor_resource_limit()
-                    * scan._MAGIC_NUMBER_SPLIT_LOWER_THRESHOLD)
+        lim_u = int(scan._file_descriptor_resource_limit() *
+                    scan._MAGIC_NUMBER_SPLIT_UPPER_THRESHOLD)
+        lim_l = int(scan._file_descriptor_resource_limit() *
+                    scan._MAGIC_NUMBER_SPLIT_LOWER_THRESHOLD)
         rng = int(self._patches['fd_res_lim'].new.return_value[0] * lim_l)
         o_fd_mock = self._patches['o_fds'].new
         self.assertLess(o_fd_mock.return_value, lim_l)
