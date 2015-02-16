@@ -73,14 +73,14 @@ class SQLiteStorage(AbstractStorage):
                 cursor.execute('SELECT * FROM {0} WHERE global_id=?'
                                .format(SQLiteStorage._TABLE_NAME),
                                (global_id, ))
-                srv = cursor.fetchone()
-                if all(item in srv.iteritems() for item in host.iteritems()):
+                hst = cursor.fetchone()
+                if all(item in hst.iteritems() for item in host.iteritems()):
                     return None
                 cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
                                .format(SQLiteStorage._TABLE_NAME, sql_part),
                                values + (global_id,))
-                srv.update(host)
-                return srv
+                hst.update(host)
+                return hst
         except sqlite3.OperationalError as e:
             if e.message == 'database is locked':
                 raise DBLockedError()
