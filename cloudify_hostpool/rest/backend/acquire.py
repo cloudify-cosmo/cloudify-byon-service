@@ -16,6 +16,7 @@
 
 import uuid
 
+from cloudify_hostpool import exceptions
 from cloudify_hostpool.backend import scan
 
 
@@ -57,7 +58,13 @@ def _check_if_alive(db, host):
     address, port = host['host'], host['port']
     results = scan.scan([(address, port)])
     is_alive = results[address, port]
-    hst = db.update_host(host['global_id'], {'alive': is_alive})
+    while True:
+        try:
+            hst = db.update_host(host['global_id'], {'alive': is_alive})
+        except exceptions.DBLockedError:
+            pass
+        else:
+            break
     if hst is None:
         return host
     else:
