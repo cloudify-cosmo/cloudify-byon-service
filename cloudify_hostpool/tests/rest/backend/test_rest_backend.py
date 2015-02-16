@@ -25,9 +25,6 @@ from cloudify_hostpool.storage import sqlite
 
 
 class RestBackendTest(unittest.TestCase):
-    db = None
-    tempfile = None
-    host_list = None
 
     @classmethod
     def setUpClass(cls):
@@ -103,7 +100,7 @@ class RestBackendTest(unittest.TestCase):
                           self.rest_backend.get_host, host_id)
 
     def _add_hosts(self):
-        self.host_list = [
+        host_list = [
             {
                 'host': '127.0.0.1',
                 'public_address': '127.0.0.1',
@@ -141,5 +138,5 @@ class RestBackendTest(unittest.TestCase):
                 'reserved': False
             }
         ]
-        for host in self.host_list:
+        for host in host_list:
             self.db.add_host(host)
