@@ -48,7 +48,7 @@ def acquire(db):
 
 def _aquisition_gen(db):
     for alive in True, False:
-        for host in db.get_host(reserved=False, alive=alive):
+        for host in db.get_hosts(reserved=False, alive=alive):
             if host.get('host_id') is None:
                 yield host
 
