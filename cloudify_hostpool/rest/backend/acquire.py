@@ -27,24 +27,34 @@ def acquire(db):
     :param db: host database.
     '''
     for host in _aquisition_gen(db):
-        acquire = False
+        if not db.reserve_host(host['global_id']):
+            continue
         try:
-            if not db.reserve_host(host['global_id']):
-                continue
             host = _check_if_alive(db, host)
-            if host['alive']:
-                acquire = True
-                break
-        finally:
-            if not acquire:
-                db.update_host(host['global_id'], {'reserved': False})
-    # No host acquired
+        except:
+            while True:
+                try:
+                    db.update_host(host['global_id'], {'reserved': False})
+                except exceptions.DBLockedError:
+                    pass
+            raise
+        if not host['alive']:
+            while True:
+                try:
+                    db.update_host(host['global_id'], {'reserved': False})
+                except exceptions.DBLockedError:
+                    pass
+            continue
+        while True:
+            try:
+                host = db.update_host(host['global_id'],
+                                      {'host_id': str(uuid.uuid4()),
+                                       'reserved': False})
+            except exceptions.DBLockedError:
+                pass
+        return host
     else:
         return None
-    host = db.update_host(host['global_id'],
-                          {'host_id': str(uuid.uuid4()),
-                           'reserved': False})
-    return host
 
 
 def _aquisition_gen(db):
