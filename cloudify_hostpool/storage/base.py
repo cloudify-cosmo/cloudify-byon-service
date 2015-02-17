@@ -58,8 +58,8 @@ class AbstractStorage(object):
         :param global_id: The global id of the host.
         :param host: The host dictionary containing the new values.
 
-        :return  None if no change occurred, host otherwise.
-        :rtype  dict
+        :return the most recent host dict
+        :rtype dict
 
         """
         pass

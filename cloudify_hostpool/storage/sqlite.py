@@ -61,8 +61,6 @@ class SQLiteStorage(AbstractStorage):
             host['global_id'] = cursor.lastrowid
 
     def update_host(self, global_id, host):
-        if not host:
-            return None
         try:
             with sqlite3.connect(self._filename, isolation_level='EXCLUSIVE')\
                     as conn:
@@ -75,12 +73,13 @@ class SQLiteStorage(AbstractStorage):
                                .format(SQLiteStorage._TABLE_NAME),
                                (global_id, ))
                 hst = cursor.fetchone()
-                if all(item in hst.iteritems() for item in host.iteritems()):
-                    return None
-                cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
-                               .format(SQLiteStorage._TABLE_NAME, sql_part),
-                               values + (global_id,))
-                hst.update(host)
+                if all(item not in hst.iteritems()
+                       for item in host.iteritems()):
+                    cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
+                                   .format(SQLiteStorage._TABLE_NAME,
+                                           sql_part),
+                                   values + (global_id, ))
+                    hst.update(host)
                 return hst
         except sqlite3.OperationalError as e:
             if e.message == 'database is locked':

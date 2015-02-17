@@ -72,17 +72,8 @@ class SQLiteTestThreading(test_sqlite_base.SQLiteTest):
             thr.append(t)
         for t in thr:
             t.join()
-        rows_changed = 0
-        rows_not_changed = 0
-        while not results.empty():
-            if results.get() is not None:
-                rows_changed += 1
-            else:
-                rows_not_changed += 1
         self.assertGreater(exceptions.qsize(), 0)
-        self.assertEqual(rows_changed, 1)
-        self.assertEqual(rows_not_changed,
-                         thread_number - rows_changed - exceptions.qsize())
+        self.assertEqual(thread_number, exceptions.qsize() + results.qsize())
 
     def _reserve(self, g_id, results, exceptions):
         try:
