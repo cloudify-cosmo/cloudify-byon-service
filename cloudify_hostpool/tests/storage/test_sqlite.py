@@ -12,10 +12,16 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
+
+
+from cloudify_hostpool.storage import sqlite
 from cloudify_hostpool.tests.storage import test_sqlite_base
 
 
 class SQLiteTest(test_sqlite_base.SQLiteTest):
+
+    def setUp(self):
+        self.db = sqlite.SQLiteStorageBlocking(self.tempfile)
 
     def test_get_all_empty(self):
         result = self.db.get_hosts()
@@ -63,8 +69,6 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
         self.assertEqual(len(result), 1)
 
     def test_update_host(self):
-        self.assertIsNone(self.db.update_host('whatever', None))
-
         self._add_hosts()
         result = self.db.get_hosts()
         host = result[0]
@@ -76,7 +80,7 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
         self.assertNotEqual(updated_host['reserved'], host['reserved'])
         self.assertEqual(updated_host['reserved'], host_update['reserved'])
         updated_host2 = self.db.update_host(host['global_id'], host_update)
-        self.assertIsNone(updated_host2)
+        self.assertEqual(updated_host, updated_host2)
 
     def test_get_host_global_id(self):
         self._add_hosts()

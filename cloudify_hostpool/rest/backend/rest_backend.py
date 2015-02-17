@@ -26,7 +26,7 @@ class RestBackend(base.AbstractRestBackend):
     """
 
     def __init__(self, file_name, db_file_name):
-        self.storage = sqlite.SQLiteStorage(db_file_name)
+        self.storage = sqlite.SQLiteStorageBlocking(db_file_name)
         self.__load_config(file_name)
 
     def list_hosts(self):

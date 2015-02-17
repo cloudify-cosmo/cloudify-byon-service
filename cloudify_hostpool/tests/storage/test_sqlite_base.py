@@ -29,7 +29,6 @@ class SQLiteTest(unittest.TestCase):
     def setUpClass(cls):
         fd, cls.tempfile = tempfile.mkstemp()
         os.close(fd)
-        cls.db = sqlite.SQLiteStorage(cls.tempfile)
 
     @classmethod
     def tearDownClass(cls):
@@ -37,12 +36,9 @@ class SQLiteTest(unittest.TestCase):
             os.unlink(cls.tempfile)
             cls.tempfile = None
 
-    def setUp(self):
-        self.db = sqlite.SQLiteStorage(self.tempfile)
-
     def tearDown(self):
         with sqlite3.connect(self.tempfile) as conn:
             cursor = conn.cursor()
             cursor.execute('DROP TABLE {0}'
-                           .format(sqlite.SQLiteStorage._TABLE_NAME))
+                           .format(sqlite._SQLiteStorageBase._TABLE_NAME))
             self.db = None

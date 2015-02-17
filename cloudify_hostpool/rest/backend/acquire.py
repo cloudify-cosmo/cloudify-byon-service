@@ -16,7 +16,6 @@
 
 import uuid
 
-from cloudify_hostpool import exceptions
 from cloudify_hostpool.backend import scan
 
 
@@ -32,31 +31,16 @@ def acquire(db):
         try:
             host = _check_if_alive(db, host)
         except:
-            while True:
-                try:
-                    db.update_host(host['global_id'], {'reserved': False})
-                except exceptions.DBLockedError:
-                    pass
+            db.update_host(host['global_id'], {'reserved': False})
             raise
         if not host['alive']:
-            while True:
-                try:
-                    db.update_host(host['global_id'], {'reserved': False})
-                except exceptions.DBLockedError:
-                    pass
+            db.update_host(host['global_id'], {'reserved': False})
             continue
-        while True:
-            try:
-                hst = db.update_host(host['global_id'],
-                                     {'host_id': str(uuid.uuid4()),
-                                      'reserved': False})
-                if hst is not None:
-                    host = hst
-            except exceptions.DBLockedError:
-                pass
+        host = db.update_host(host['global_id'],
+                              {'host_id': str(uuid.uuid4()),
+                               'reserved': False})
         return host
-    else:
-        return None
+    return None
 
 
 def _aquisition_gen(db):
@@ -70,9 +54,4 @@ def _check_if_alive(db, host):
     address, port = host['host'], host['port']
     results = scan.scan([(address, port)])
     is_alive = results[address, port]
-    while True:
-        try:
-            hst = db.update_host(host['global_id'], {'alive': is_alive})
-            return host if hst is None else hst
-        except exceptions.DBLockedError:
-            pass
+    return db.update_host(host['global_id'], {'alive': is_alive})

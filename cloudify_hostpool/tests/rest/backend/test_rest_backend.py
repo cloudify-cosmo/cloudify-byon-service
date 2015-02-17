@@ -41,13 +41,13 @@ class RestBackendTest(unittest.TestCase):
         cls.cfg_file = None
 
     def setUp(self):
-        self.db = sqlite.SQLiteStorage(self.db_file)
+        self.db = sqlite.SQLiteStorageBlocking(self.db_file)
 
     def tearDown(self):
         with sqlite3.connect(self.db_file) as conn:
             cursor = conn.cursor()
             cursor.execute('DROP TABLE {0}'
-                           .format(sqlite.SQLiteStorage._TABLE_NAME))
+                           .format(sqlite._SQLiteStorageBase._TABLE_NAME))
             self.db = None
 
     @patch('cloudify_hostpool.config.config.load_config')
