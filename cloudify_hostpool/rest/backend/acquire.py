@@ -61,11 +61,6 @@ def _check_if_alive(db, host):
     while True:
         try:
             hst = db.update_host(host['global_id'], {'alive': is_alive})
+            return host if hst is None else hst
         except exceptions.DBLockedError:
             pass
-        else:
-            break
-    if hst is None:
-        return host
-    else:
-        return hst
