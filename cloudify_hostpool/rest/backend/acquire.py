@@ -47,9 +47,11 @@ def acquire(db):
             continue
         while True:
             try:
-                host = db.update_host(host['global_id'],
-                                      {'host_id': str(uuid.uuid4()),
-                                       'reserved': False})
+                hst = db.update_host(host['global_id'],
+                                     {'host_id': str(uuid.uuid4()),
+                                      'reserved': False})
+                if hst is not None:
+                    host = hst
             except exceptions.DBLockedError:
                 pass
         return host
