@@ -62,39 +62,32 @@ class _SQLiteStorageBase(AbstractStorage):
             host['global_id'] = cursor.lastrowid
 
     def update_host(self, global_id, host):
-        if not host:
-            return None
-        while True:
-            try:
-                with sqlite3.connect(self._filename,
-                                     isolation_level='EXCLUSIVE') as conn:
-                    conn.row_factory = _dict_factory
-                    conn.execute('BEGIN EXCLUSIVE')
-                    cursor = conn.cursor()
-                    values = tuple(host.itervalues())
-                    sql_part = ", ".join('{0}=?'.format(s) for s in host)
-                    cursor.execute('SELECT * FROM {0} WHERE global_id=?'
-                                   .format(_SQLiteStorageBase._TABLE_NAME),
-                                   (global_id, ))
-                    hst = cursor.fetchone()
-                    if all(item in hst.iteritems()
-                           for item in host.iteritems()):
-                        return None
+        try:
+            with sqlite3.connect(self._filename, isolation_level='EXCLUSIVE')\
+                    as conn:
+                conn.row_factory = _dict_factory
+                conn.execute('BEGIN EXCLUSIVE')
+                cursor = conn.cursor()
+                values = tuple(host.itervalues())
+                sql_part = ", ".join('{0}=?'.format(s) for s in host)
+                cursor.execute('SELECT * FROM {0} WHERE global_id=?'
+                               .format(_SQLiteStorageBase._TABLE_NAME),
+                               (global_id, ))
+                hst = cursor.fetchone()
+                if all(item not in hst.iteritems()
+                       for item in host.iteritems()):
                     cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
                                    .format(_SQLiteStorageBase._TABLE_NAME,
                                            sql_part),
-                                   values + (global_id,))
+                                   values + (global_id, ))
                     hst.update(host)
-                    return hst
-            except sqlite3.OperationalError as e:
-                if e.message == 'database is locked':
-                    if self.blocking:
-                        continue
-                    else:
-                        raise DBLockedError()
-                raise DBError(e.message)
+                return hst
+        except sqlite3.OperationalError as e:
+            if e.message == 'database is locked':
+                raise DBLockedError()
+            raise DBError(e.message)
 
-    def get_host(self, filters=None):
+    def get_host(self, **filters):
         if not filters:
             return None
         with sqlite3.connect(self._filename) as conn:

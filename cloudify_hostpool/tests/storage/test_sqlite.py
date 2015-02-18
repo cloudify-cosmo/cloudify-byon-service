@@ -103,8 +103,6 @@ class SQLiteTest(unittest.TestCase):
         self.assertEqual(len(result), 1)
 
     def test_update_host(self):
-        self.assertIsNone(self.db.update_host('whatever', None))
-
         self._add_hosts()
         result = self.db.get_hosts()
         host = result[0]
@@ -116,7 +114,7 @@ class SQLiteTest(unittest.TestCase):
         self.assertNotEqual(updated_host['reserved'], host['reserved'])
         self.assertEqual(updated_host['reserved'], host_update['reserved'])
         updated_host2 = self.db.update_host(host['global_id'], host_update)
-        self.assertIsNone(updated_host2)
+        self.assertEqual(updated_host, updated_host2)
 
     def test_get_host_global_id(self):
         self._add_hosts()
