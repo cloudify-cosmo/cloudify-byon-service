@@ -47,7 +47,7 @@ def list_hosts():
 
 
 @app.route('/hosts', methods=['POST'])
-def acquire_hosts():
+def acquire_host():
     """ Acquire(allocate) the host """
     host = backend.acquire_host()
     return jsonify(host), httplib.CREATED
@@ -61,7 +61,7 @@ def release_host(host_id):
 
 
 @app.route('/hosts/<host_id>', methods=['GET'])
-def get_hosts(host_id):
+def get_host(host_id):
     """Get the details of the host with the given host_id"""
     host = backend.get_host(host_id)
     return jsonify(host), httplib.OK

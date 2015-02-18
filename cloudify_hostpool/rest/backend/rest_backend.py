@@ -30,11 +30,11 @@ class RestBackend(base.AbstractRestBackend):
         self.__load_config(file_name)
 
     def list_hosts(self):
-        all_hosts = self.storage.get_hosts()
+        hosts = self.storage.get_hosts(
+            [sqlite.Filter('host_id', None, sqlite.Filter.IS_NOT)])
         # further should be here some translation
         # to status when we decide what status should be like
-        return [host for host in all_hosts
-                if host['host_id'] is not None]
+        return hosts
 
     def acquire_host(self):
         host = acquire.acquire(self.storage)
@@ -43,7 +43,7 @@ class RestBackend(base.AbstractRestBackend):
         return host
 
     def release_host(self, host_id):
-        host = self.storage.get_host(host_id=host_id)
+        host = self.storage.get_host([sqlite.Filter('host_id', host_id)])
         if host is None:
             raise exceptions.NotFoundError(host)
         updated_host = self.storage.update_host(host['global_id'],
@@ -53,7 +53,7 @@ class RestBackend(base.AbstractRestBackend):
         return updated_host
 
     def get_host(self, host_id):
-        host = self.storage.get_host(host_id=host_id)
+        host = self.storage.get_host([sqlite.Filter('host_id', host_id)])
         if host is None:
             raise exceptions.NotFoundError(host_id)
         # further should be here some translation

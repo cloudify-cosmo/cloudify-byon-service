@@ -13,7 +13,7 @@
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
 
-
+from cloudify_hostpool.storage.sqlite import Filter
 from cloudify_hostpool.storage import sqlite
 from cloudify_hostpool.tests.storage import test_sqlite_base
 
@@ -59,13 +59,17 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
         result = self.db.get_hosts()
         self.assertEqual(len(result), len(self.host_list))
 
-        result = self.db.get_hosts(port=1000)
+        result = self.db.get_hosts([Filter('port', 1000)])
+        self.assertEqual(len(result), 3)
+
+        result = self.db.get_hosts([Filter('alive', True)])
+        self.assertEqual(len(result), 3)
+
+        result = self.db.get_hosts([Filter('alive', True),
+                                    Filter('port', 1000)])
         self.assertEqual(len(result), 2)
 
-        result = self.db.get_hosts(alive=True)
-        self.assertEqual(len(result), 2)
-
-        result = self.db.get_hosts(alive=True, port=1000)
+        result = self.db.get_hosts([Filter('host_id', None, Filter.IS_NOT)])
         self.assertEqual(len(result), 1)
 
     def test_update_host(self):
@@ -88,9 +92,9 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
         self._add_hosts()
         hosts = self.db.get_hosts()
         db_host = hosts[0]
-        host = self.db.get_host(global_id=db_host['global_id'])
+        host = self.db.get_host([Filter('global_id', db_host['global_id'])])
         self.assertEqual(db_host, host)
-        host = self.db.get_host(global_id=10)
+        host = self.db.get_host([Filter('global_id', 10)])
         self.assertIsNone(host)
 
     def test_get_host_filter(self):
@@ -98,7 +102,7 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
         hosts = self.db.get_hosts()
         db_host = hosts[0]
         # it should return first alive host
-        host = self.db.get_host(alive=True)
+        host = self.db.get_host([Filter('alive', True)])
         self.assertEqual(db_host, host)
 
     def test_reserve_host(self):
@@ -112,7 +116,7 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
         result = self.db.reserve_host(db_host['global_id'])
         self.assertFalse(result)
 
-        host = self.db.get_host(global_id=db_host['global_id'])
+        host = self.db.get_host([Filter('global_id', db_host['global_id'])])
         self.assertEqual(db_host['host'], host['host'])
         self.assertEqual(db_host['port'], host['port'])
         self.assertEqual(db_host['auth'], host['auth'])
@@ -148,6 +152,15 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
                 'port': 1000,
                 'auth': None,
                 'host_id': None,
+                'alive': True,
+                'reserved': False
+            },
+            {
+                'host': '10.0.0.1',
+                'public_address': '10.0.0.1',
+                'port': 1000,
+                'auth': None,
+                'host_id': 'test',
                 'alive': True,
                 'reserved': False
             }

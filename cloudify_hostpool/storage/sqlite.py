@@ -34,7 +34,7 @@ class _SQLiteStorageBase(AbstractStorage):
         self._filename = db_filename
         self._create_table()
 
-    def get_hosts(self, **filters):
+    def get_hosts(self, filters=None):
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = _dict_factory
             cursor = conn.cursor()
@@ -42,8 +42,7 @@ class _SQLiteStorageBase(AbstractStorage):
                 cursor.execute('SELECT * FROM {0}'
                                .format(_SQLiteStorageBase._TABLE_NAME))
             else:
-                sql_cond, values = _get_sql_and_values_from_filters(
-                    **filters)
+                sql_cond, values = _prepare_conditions(filters)
                 cursor.execute('SELECT * FROM {0} WHERE {1}'
                                .format(_SQLiteStorageBase._TABLE_NAME,
                                        sql_cond),
@@ -95,13 +94,13 @@ class _SQLiteStorageBase(AbstractStorage):
                         raise DBLockedError()
                 raise DBError(e.message)
 
-    def get_host(self, **filters):
+    def get_host(self, filters=None):
         if not filters:
             return None
         with sqlite3.connect(self._filename) as conn:
             conn.row_factory = _dict_factory
             cursor = conn.cursor()
-            sql_part, values = _get_sql_and_values_from_filters(**filters)
+            sql_part, values = _prepare_conditions(filters)
             cursor.execute('SELECT * FROM {0} WHERE {1}'
                            .format(_SQLiteStorageBase._TABLE_NAME, sql_part),
                            values)
@@ -148,6 +147,19 @@ class SQLiteStorageNonblocking(_SQLiteStorageBase):
         super(SQLiteStorageNonblocking, self).__init__(db_filename, False)
 
 
+class Filter(object):
+    IN = ' IN '
+    NOT_IN = ' NOT IN '
+    IS_NOT = ' IS NOT '
+    EQUAL = '='
+    IS = ' IS '
+
+    def __init__(self, field, value, operand=EQUAL):
+        self.field = field
+        self.value = value
+        self.operand = operand
+
+
 def _normalize_port(port):
     try:
         return int(port)    # just for elegance
@@ -181,4 +193,12 @@ def _get_sql_and_values_from_filters(**filters):
     """ Helper method to create sql query """
     values = tuple(filters.itervalues())
     sql_part = ' AND '.join('{0}=?'.format(f) for f in filters)
+    return sql_part, values
+
+
+def _prepare_conditions(filters):
+    """ Helper method to create sql query """
+    values = tuple([f.value for f in filters])
+    cond = ['{0}{1}?'.format(f.field, f.operand) for f in filters]
+    sql_part = ' AND '.join(cond)
     return sql_part, values

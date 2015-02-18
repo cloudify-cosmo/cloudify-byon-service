@@ -18,6 +18,7 @@ import uuid
 
 from cloudify_hostpool import exceptions
 from cloudify_hostpool.backend import scan
+from cloudify_hostpool.storage import sqlite
 
 
 def acquire(db):
@@ -61,9 +62,13 @@ def acquire(db):
 
 def _aquisition_gen(db):
     for alive in True, False:
-        for host in db.get_hosts(reserved=False, alive=alive):
-            if host.get('host_id') is None:
-                yield host
+        hosts = db.get_hosts([sqlite.Filter('reserved', False),
+                              sqlite.Filter('alive', alive),
+                              sqlite.Filter('host_id',
+                                            None,
+                                            sqlite.Filter.IS)])
+        for host in hosts:
+            yield host
 
 
 def _check_if_alive(db, host):
