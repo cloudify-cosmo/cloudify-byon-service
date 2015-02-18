@@ -21,6 +21,9 @@ from cloudify_hostpool.tests.storage import test_sqlite_base
 
 class SQLiteTestThreading(test_sqlite_base.SQLiteTest):
 
+    def setUp(self):
+        self.db = sqlite.SQLiteStorageNonblocking(self.tempfile)
+
     def test_reserving(self):
         """
         Test spawning 1000 threads and checking if more than 0 has raised
