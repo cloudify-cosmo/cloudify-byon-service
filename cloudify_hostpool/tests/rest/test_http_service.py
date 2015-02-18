@@ -57,19 +57,26 @@ class ServiceTest(unittest.TestCase):
     def test_list_hosts(self):
         result = self.app.get('/hosts')
         self.assertEqual(result._status_code, 200)
+        self.app.post('/hosts')
+        result = self.app.get('/hosts')
+        self.assertEqual(result._status_code, 200)
+        hosts_list = json.loads(result.response.next())
+        self.assertEqual(len(hosts_list), 1)
 
     def test_acquire(self):
         result = self.app.post('/hosts')
         self.assertEqual(result._status_code, 201)
-
-    def test_acquire_and_not_ok(self):
-        self.app.post('/hosts')
         result = self.app.post('/hosts')
         self.assertEqual(result._status_code, 515)
 
-    def test_get_not_ok(self):
+    def test_get(self):
         result = self.app.get('/hosts/test')
         self.assertEqual(result._status_code, 404)
+        result = self.app.post('/hosts')
+        self.assertEqual(result._status_code, 201)
+        host = json.loads(result.response.next())
+        result = self.app.get('/hosts/{0}'.format(host['host_id']))
+        self.assertEqual(result._status_code, 200)
 
     def test_acquire_and_release(self):
         result = self.app.post('/hosts')
