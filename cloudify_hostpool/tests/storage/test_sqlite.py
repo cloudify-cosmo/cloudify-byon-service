@@ -14,10 +14,14 @@
 # * limitations under the License.
 
 from cloudify_hostpool.storage.sqlite import Filter
+from cloudify_hostpool.storage import sqlite
 from cloudify_hostpool.tests.storage import test_sqlite_base
 
 
 class SQLiteTest(test_sqlite_base.SQLiteTest):
+
+    def setUp(self):
+        self.db = sqlite.SQLiteStorageBlocking(self.tempfile)
 
     def test_get_all_empty(self):
         result = self.db.get_hosts()
