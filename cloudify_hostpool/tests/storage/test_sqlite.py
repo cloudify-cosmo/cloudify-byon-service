@@ -31,7 +31,7 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
         host = {
             'host': '127.0.0.1',
             'public_address': '127.0.0.1',
-            'port': '22',
+            'port': 22,
             'auth': None,
             'host_id': None,
             'alive': False,
@@ -45,7 +45,7 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
 
     def test_add_bad_host(self):
         host = {
-            'port': '22',
+            'port': 22,
             'auth': None,
             'host_id': None,
             'alive': False,
@@ -59,13 +59,13 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
         result = self.db.get_hosts()
         self.assertEqual(len(result), len(self.host_list))
 
-        result = self.db.get_hosts(port='1000')
+        result = self.db.get_hosts(port=1000)
         self.assertEqual(len(result), 2)
 
         result = self.db.get_hosts(alive=True)
         self.assertEqual(len(result), 2)
 
-        result = self.db.get_hosts(alive=True, port='1000')
+        result = self.db.get_hosts(alive=True, port=1000)
         self.assertEqual(len(result), 1)
 
     def test_update_host(self):
@@ -127,7 +127,7 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
             {
                 'host': '127.0.0.1',
                 'public_address': '127.0.0.1',
-                'port': '22',
+                'port': 22,
                 'auth': None,
                 'host_id': None,
                 'alive': True,
@@ -136,7 +136,7 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
             {
                 'host': '127.0.0.1',
                 'public_address': '127.0.0.1',
-                'port': '1000',
+                'port': 1000,
                 'auth': None,
                 'host_id': None,
                 'alive': False,
@@ -145,7 +145,7 @@ class SQLiteTest(test_sqlite_base.SQLiteTest):
             {
                 'host': '10.0.0.1',
                 'public_address': '10.0.0.1',
-                'port': '1000',
+                'port': 1000,
                 'auth': None,
                 'host_id': None,
                 'alive': True,

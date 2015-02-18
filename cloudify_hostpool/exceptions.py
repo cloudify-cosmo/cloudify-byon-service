@@ -12,16 +12,27 @@
 # * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
+import abc
 
 
 class HostPoolHTTPException(Exception):
     """  An error raised by service modules to handle errors in REST API"""
+    __metaclass__ = abc.ABCMeta
 
+    @abc.abstractmethod
     def get_code(self):
-        pass
+        """
+        Return HTTP error code
+        :return: HTTP error code
+        """
 
+    @abc.abstractmethod
     def to_dict(self):
-        pass
+        """
+        Return exception data to dictionary
+        :return: dictionary with exception data
+        :rtype : dict
+        """
 
     def __str__(self):
         pass

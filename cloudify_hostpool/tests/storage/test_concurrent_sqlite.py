@@ -62,7 +62,7 @@ class SQLiteTestThreading(test_sqlite_base.SQLiteTest):
         """
         self._add_host()
         host = self.db.get_host(host='127.0.0.1')
-        update = dict(public_address='127.0.5.1', port='23', alive=False)
+        update = dict(public_address='127.0.5.1', port=23, alive=False)
         results = Queue()
         thr = []
         exceptions = Queue()
@@ -100,6 +100,6 @@ class SQLiteTestThreading(test_sqlite_base.SQLiteTest):
             exceptions.put(True)
 
     def _add_host(self):
-        host = dict(host='127.0.0.1', public_address='127.0.0.1', port='22',
+        host = dict(host='127.0.0.1', public_address='127.0.0.1', port=22,
                     auth=None, host_id=None, alive=True, reserved=False)
         self.db.add_host(host)
