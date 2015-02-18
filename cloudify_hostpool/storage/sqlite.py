@@ -20,7 +20,7 @@ from cloudify_hostpool.exceptions import DBError
 from cloudify_hostpool.exceptions import DBLockedError
 
 
-class SQLiteStorage(AbstractStorage):
+class _SQLiteStorageBase(AbstractStorage):
     """ Storage wrapper for SQLite DB implementing AbstractStorage interface"""
     _TABLE_NAME = 'hosts'
     _CREATE_TABLE = 'CREATE TABLE {0} ' \
@@ -29,7 +29,8 @@ class SQLiteStorage(AbstractStorage):
                     'port text, alive integer, reserved integer)' \
         .format(_TABLE_NAME)
 
-    def __init__(self, db_filename):
+    def __init__(self, db_filename, blocking):
+        self.blocking = blocking
         self._filename = db_filename
         try:
             self._create_table()
@@ -43,11 +44,12 @@ class SQLiteStorage(AbstractStorage):
             cursor = conn.cursor()
             if not filters:
                 cursor.execute('SELECT * FROM {0}'
-                               .format(SQLiteStorage._TABLE_NAME))
+                               .format(_SQLiteStorageBase._TABLE_NAME))
             else:
                 sql_cond, values = _prepare_conditions(filters)
                 cursor.execute('SELECT * FROM {0} WHERE {1}'
-                               .format(SQLiteStorage._TABLE_NAME, sql_cond),
+                               .format(_SQLiteStorageBase._TABLE_NAME,
+                                       sql_cond),
                                values)
             return list(cursor.fetchall())
 
@@ -60,35 +62,41 @@ class SQLiteStorage(AbstractStorage):
             cursor.execute('INSERT INTO {0} (host_id, host, '
                            'public_address, auth, port, alive, reserved)'
                            ' VALUES(?, ?, ?, ?, ?, ?, ?)'
-                           .format(SQLiteStorage._TABLE_NAME), values)
+                           .format(_SQLiteStorageBase._TABLE_NAME), values)
             host['global_id'] = cursor.lastrowid
 
     def update_host(self, global_id, host):
         if not host:
             return None
-        try:
-            with sqlite3.connect(self._filename, isolation_level='EXCLUSIVE')\
-                    as conn:
-                conn.row_factory = _dict_factory
-                conn.execute('BEGIN EXCLUSIVE')
-                cursor = conn.cursor()
-                values = tuple(host.itervalues())
-                sql_part = ", ".join('{0}=?'.format(s) for s in host)
-                cursor.execute('SELECT * FROM {0} WHERE global_id=?'
-                               .format(SQLiteStorage._TABLE_NAME),
-                               (global_id, ))
-                hst = cursor.fetchone()
-                if all(item in hst.iteritems() for item in host.iteritems()):
-                    return None
-                cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
-                               .format(SQLiteStorage._TABLE_NAME, sql_part),
-                               values + (global_id,))
-                hst.update(host)
-                return hst
-        except sqlite3.OperationalError as e:
-            if e.message == 'database is locked':
-                raise DBLockedError()
-            raise DBError(e.message)
+        while True:
+            try:
+                with sqlite3.connect(self._filename,
+                                     isolation_level='EXCLUSIVE') as conn:
+                    conn.row_factory = _dict_factory
+                    conn.execute('BEGIN EXCLUSIVE')
+                    cursor = conn.cursor()
+                    values = tuple(host.itervalues())
+                    sql_part = ", ".join('{0}=?'.format(s) for s in host)
+                    cursor.execute('SELECT * FROM {0} WHERE global_id=?'
+                                   .format(_SQLiteStorageBase._TABLE_NAME),
+                                   (global_id, ))
+                    hst = cursor.fetchone()
+                    if all(item in hst.iteritems()
+                           for item in host.iteritems()):
+                        return None
+                    cursor.execute('UPDATE {0} SET {1} WHERE global_id=?'
+                                   .format(_SQLiteStorageBase._TABLE_NAME,
+                                           sql_part),
+                                   values + (global_id,))
+                    hst.update(host)
+                    return hst
+            except sqlite3.OperationalError as e:
+                if e.message == 'database is locked':
+                    if self.blocking:
+                        continue
+                    else:
+                        raise DBLockedError()
+                raise DBError(e.message)
 
     def get_host(self, filters=None):
         if not filters:
@@ -98,7 +106,7 @@ class SQLiteStorage(AbstractStorage):
             cursor = conn.cursor()
             sql_part, values = _prepare_conditions(filters)
             cursor.execute('SELECT * FROM {0} WHERE {1}'
-                           .format(SQLiteStorage._TABLE_NAME, sql_part),
+                           .format(_SQLiteStorageBase._TABLE_NAME, sql_part),
                            values)
             return cursor.fetchone()
 
@@ -124,12 +132,23 @@ class SQLiteStorage(AbstractStorage):
                     raise DBError(e.message)
 
     def _create_table(self):
-        try:
-            with sqlite3.connect(self._filename) as conn:
-                cursor = conn.cursor()
-                cursor.execute(SQLiteStorage._CREATE_TABLE)
-        except sqlite3.OperationalError as e:
-            raise DBError(e.message)
+        with sqlite3.connect(self._filename) as conn:
+            cursor = conn.cursor()
+            cursor.execute(_SQLiteStorageBase._CREATE_TABLE)
+
+
+class SQLiteStorageBlocking(_SQLiteStorageBase):
+    '''Blocking version of the SQLite storage wrapper'''
+
+    def __init__(self, db_filename):
+        super(SQLiteStorageBlocking, self).__init__(db_filename, True)
+
+
+class SQLiteStorageNonblocking(_SQLiteStorageBase):
+    '''Nonblocking version of the SQLite storage wrapper'''
+
+    def __init__(self, db_filename):
+        super(SQLiteStorageNonblocking, self).__init__(db_filename, False)
 
 
 class Filter(object):
@@ -137,6 +156,7 @@ class Filter(object):
     NOT_IN = ' NOT IN '
     IS_NOT = ' IS NOT '
     EQUAL = '='
+    IS = ' IS '
 
     def __init__(self, field, value, operand=EQUAL):
         self.field = field
