@@ -16,6 +16,7 @@
 
 import uuid
 
+from cloudify_hostpool import exceptions
 from cloudify_hostpool.backend import scan
 from cloudify_hostpool.storage import sqlite
 
@@ -27,40 +28,56 @@ def acquire(db):
     :param db: host database.
     '''
     for host in _aquisition_gen(db):
-        acquire = False
+        if not db.reserve_host(host['global_id']):
+            continue
         try:
-            if not db.reserve_host(host['global_id']):
-                continue
             host = _check_if_alive(db, host)
-            if host['alive']:
-                acquire = True
-                break
-        finally:
-            if not acquire:
-                db.update_host(host['global_id'], {'reserved': False})
-    # No host acquired
+        except:
+            while True:
+                try:
+                    db.update_host(host['global_id'], {'reserved': False})
+                except exceptions.DBLockedError:
+                    pass
+            raise
+        if not host['alive']:
+            while True:
+                try:
+                    db.update_host(host['global_id'], {'reserved': False})
+                except exceptions.DBLockedError:
+                    pass
+            continue
+        while True:
+            try:
+                hst = db.update_host(host['global_id'],
+                                     {'host_id': str(uuid.uuid4()),
+                                      'reserved': False})
+                if hst is not None:
+                    host = hst
+            except exceptions.DBLockedError:
+                pass
+        return host
     else:
         return None
-    host = db.update_host(host['global_id'],
-                          {'host': str(uuid.uuid4()),
-                           'reserved': False})
-    return host
 
 
 def _aquisition_gen(db):
     for alive in True, False:
-        for host in db.get_host([sqlite.Filter('reserved', False),
-                                 sqlite.Filter(alive=alive)]):
-            if host.get('host') is None:
-                yield host
+        hosts = db.get_hosts([sqlite.Filter('reserved', False),
+                              sqlite.Filter('alive', alive),
+                              sqlite.Filter('host_id',
+                                            None,
+                                            sqlite.Filter.IS)])
+        for host in hosts:
+            yield host
 
 
 def _check_if_alive(db, host):
     address, port = host['host'], host['port']
     results = scan.scan([(address, port)])
     is_alive = results[address, port]
-    srv = db.update_host(host['global_id'], {'alive': is_alive})
-    if srv is None:
-        return host
-    else:
-        return srv
+    while True:
+        try:
+            hst = db.update_host(host['global_id'], {'alive': is_alive})
+            return host if hst is None else hst
+        except exceptions.DBLockedError:
+            pass

@@ -19,6 +19,8 @@ import unittest
 
 from cloudify_hostpool.storage import sqlite
 from cloudify_hostpool.storage.sqlite import Filter
+from cloudify_hostpool.storage import sqlite
+from cloudify_hostpool.tests.storage import test_sqlite_base
 
 
 class SQLiteTest(unittest.TestCase):
@@ -47,6 +49,9 @@ class SQLiteTest(unittest.TestCase):
             cursor.execute('DROP TABLE {0}'
                            .format(sqlite.SQLiteStorage._TABLE_NAME))
             self.db = None
+
+    def setUp(self):
+        self.db = sqlite.SQLiteStorageBlocking(self.tempfile)
 
     def test_get_all_empty(self):
         result = self.db.get_hosts()
