@@ -21,15 +21,18 @@ from flask_restful import Api
 from cloudify_hostpool import exceptions
 from cloudify_hostpool.rest.backend import rest_backend
 
-
 _CONFIGURATION_FILE_PATH = 'host-pool.yaml'
 _DATABASE_FILE_PATH = 'host-pool.sqlite'
 
-
+backend = None
 app = Flask(__name__)
 api = Api(app)
-backend = rest_backend.RestBackend(_CONFIGURATION_FILE_PATH,
-                                   _DATABASE_FILE_PATH)
+
+
+def _init_backend():
+    global backend
+    backend = rest_backend.RestBackend(_CONFIGURATION_FILE_PATH,
+                                       _DATABASE_FILE_PATH)
 
 
 @app.errorhandler(exceptions.HostPoolHTTPException)
@@ -67,4 +70,5 @@ def get_host(host_id):
     return jsonify(host), httplib.OK
 
 if __name__ == '__main__':
+    _init_backend()
     app.run()
