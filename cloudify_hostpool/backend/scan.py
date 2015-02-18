@@ -139,7 +139,11 @@ def _scan(endpoints):
                                             # scanning both IPv4 and
                                             # IPv6 endpoints.
                         socket.SOCK_STREAM]
-            gai_res = socket.getaddrinfo(*gai_args)
+            try:
+                gai_res = socket.getaddrinfo(*gai_args)
+            except socket.gaierror:
+                results[host, port] = False
+                break
             for r in gai_res:
                 sock, is_open = _init_connection(r)
                 if is_open:
