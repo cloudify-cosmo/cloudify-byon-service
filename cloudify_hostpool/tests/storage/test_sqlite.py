@@ -13,26 +13,31 @@
 # * See the License for the specific language governing permissions and
 # * limitations under the License.
 
-import tempfile
-import testtools
+import os
 import sqlite3
+import tempfile
+import unittest
 
+from cloudify_hostpool.storage import base
 from cloudify_hostpool.storage import sqlite
 
 
-class SQLiteTest(testtools.TestCase):
+class SQLiteTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        super(SQLiteTest, cls).setUpClass()
-        _, cls.tempfile = tempfile.mkstemp()
+        fd, cls.tempfile = tempfile.mkstemp()
+        os.close(fd)
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists(cls.tempfile):
+            os.unlink(cls.tempfile)
 
     def setUp(self):
-        super(SQLiteTest, self).setUp()
         self.db = sqlite.SQLiteStorage(self.tempfile)
 
     def tearDown(self):
-        super(SQLiteTest, self).tearDown()
         with self.db.connect() as cursor:
             cursor.execute('DROP TABLE {0}'
                            .format(sqlite.SQLiteStorage.TABLE_NAME))
@@ -74,16 +79,17 @@ class SQLiteTest(testtools.TestCase):
         result = self.db.get_hosts()
         self.assertEqual(len(result), len(self.host_list))
 
-        result = self.db.get_hosts(port=1000)
+        result = self.db.get_hosts([base.Filter('port', 1000)])
         self.assertEqual(len(result), 3)
 
-        result = self.db.get_hosts(alive=True)
+        result = self.db.get_hosts([base.Filter('alive', True)])
         self.assertEqual(len(result), 3)
 
-        result = self.db.get_hosts(alive=True, port=1000)
+        result = self.db.get_hosts([base.Filter('alive', True),
+                                    base.Filter('port', 1000)])
         self.assertEqual(len(result), 2)
 
-        result = self.db.get_hosts(host_id='test')
+        result = self.db.get_hosts([base.Filter('host_id', 'test')])
         self.assertEqual(len(result), 1)
 
     def test_update_compare(self):
@@ -120,7 +126,7 @@ class SQLiteTest(testtools.TestCase):
         self._add_hosts()
         hosts = self.db.get_hosts()
         db_host = hosts[0]
-        host = self.db.get_hosts(alive=True)[0]
+        host = self.db.get_hosts([base.Filter('alive', True)])[0]
         self.assertEqual(db_host, host)
 
     def _add_hosts(self):

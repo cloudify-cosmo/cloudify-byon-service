@@ -27,13 +27,13 @@ class Storage(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def get_hosts(self, **filters):
+    def get_hosts(self, filters=None):
 
         """
         Retrieves hosts in the database that fit the given filters.
         If no filters are supplied, all hosts are returned.
 
-        :param filters: keyword arguments of filters to search by.
+        :param filters: list of Filter objects to search by.
         :type filters: dict
 
         :return A list of hosts.
@@ -97,3 +97,19 @@ class Storage(object):
         :rtype `dict`
 
         """
+
+
+class Filter(object):
+
+    """
+    Filter object for queries on host fields.
+    """
+    IN = 1
+    NOT_IN = 2
+    NOT = 3
+    EQUAL = 4
+
+    def __init__(self, field, value, operand=EQUAL):
+        self.field = field
+        self.value = value
+        self.operand = operand

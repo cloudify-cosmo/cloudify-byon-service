@@ -16,6 +16,7 @@
 import uuid
 
 from cloudify_hostpool.hosts import scan
+from cloudify_hostpool.storage import base
 from cloudify_hostpool.storage import sqlite
 from cloudify_hostpool.config import yaml_pool
 from cloudify_hostpool import exceptions
@@ -42,8 +43,9 @@ class RestBackend(object):
             self.storage.add_host(host)
 
     def list_hosts(self):
-        hosts = self.storage.get_hosts()
-        return filter(lambda host: host['host_id'], hosts)
+        hosts = self.storage.get_hosts(
+            [base.Filter('host_id', None, base.Filter.NOT)])
+        return hosts
 
     def acquire_host(self):
 
@@ -94,7 +96,7 @@ class RestBackend(object):
         return host
 
     def get_host(self, host_id):
-        hosts = self.storage.get_hosts(host_id=host_id)
+        hosts = self.storage.get_hosts([base.Filter('host_id', host_id)])
         if len(hosts) == 0:
             raise exceptions.HostNotFoundException(host_id)
         return hosts[0]
@@ -113,10 +115,9 @@ class RestBackend(object):
             # in any case, we are only interested
             # in unreserved hosts that are not allocated
             # to anyone yet
-            hosts = self.storage.get_hosts(
-                host_id=None,
-                reserved=False,
-                alive=alive)
+            hosts = self.storage.get_hosts([base.Filter('host_id', None),
+                                            base.Filter('reserved', False),
+                                            base.Filter('alive', alive)])
             for host in hosts:
                 yield host
 

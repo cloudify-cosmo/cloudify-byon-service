@@ -20,6 +20,7 @@ import threading
 
 from cloudify_hostpool import exceptions
 from cloudify_hostpool.rest.backend import RestBackend
+from cloudify_hostpool.storage import base
 from cloudify_hostpool.storage import sqlite
 
 
@@ -71,7 +72,8 @@ class RestBackendTest(unittest.TestCase):
         self.assertEqual(host['host_id'], 'test')
 
         # test host was really released
-        hosts = self.backend.storage.get_hosts(host_id='test')
+        hosts = self.backend.storage.get_hosts([
+            base.Filter('host_id', 'test')])
         self.assertEqual(len(hosts), 0)
 
     def test_release_non_existing_host(self):

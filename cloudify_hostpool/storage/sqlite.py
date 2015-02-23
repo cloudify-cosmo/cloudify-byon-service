@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from functools import wraps
 from collections import namedtuple
 
-from cloudify_hostpool.storage.base import Storage
+from cloudify_hostpool.storage import base
 from cloudify_hostpool import exceptions
 
 
@@ -71,7 +71,7 @@ def blocking(func):
     return wrapper
 
 
-class SQLiteStorage(Storage):
+class SQLiteStorage(base.Storage):
 
     """
     Storage wrapper for SQLite DB implementing AbstractStorage interface.
@@ -98,13 +98,13 @@ class SQLiteStorage(Storage):
             yield conn.cursor()
 
     @blocking
-    def get_hosts(self, **filters):
+    def get_hosts(self, filters=None):
         with self.connect() as cursor:
             if not filters:
                 cursor.execute('SELECT * FROM {0}'.format(self.TABLE_NAME))
             else:
                 sql_cond = _construct_and_query_sql(filters)
-                values = _construct_values_tuple(filters)
+                values = _construct_values_tuple_from_filter(filters)
                 cursor.execute('SELECT * FROM {0} WHERE {1}'
                                .format(self.TABLE_NAME, sql_cond),
                                values)
@@ -130,7 +130,9 @@ class SQLiteStorage(Storage):
         with self.connect(exclusive=True) as cursor:
             sql_set = _construct_set_values_sql(new_values)
             old_values.update({'global_id': global_id})
-            sql_con = _construct_and_query_sql(old_values)
+            sql_con = _construct_and_query_sql([base.Filter(key, value)
+                                                for key, value
+                                                in old_values.iteritems()])
             new = _construct_values_tuple(new_values)
             old = _construct_values_tuple(old_values)
             cursor.execute('UPDATE {0} SET {1} WHERE {2}'.format(
@@ -194,10 +196,23 @@ def _construct_set_values_sql(values):
 
 
 def _construct_and_query_sql(filters):
-    return ' AND '.join('{0}{1}?'.format(
-        f[0], ' is ' if f[1] is None else '=') for f in filters.iteritems())
+    _operand_map = {base.Filter.EQUAL: '=',
+                    base.Filter.IN: ' IN ',
+                    base.Filter.NOT: ' IS NOT ',
+                    base.Filter.NOT_IN: ' NOT IN '}
+    for f in filters:
+        if not f.value and f.operand != base.Filter.NOT:
+            f.operand = ' IS '
+        else:
+            f.operand = _operand_map[f.operand]
+    return ' AND '.join('{0}{1}?'.format(f.field, f.operand) for f in filters)
 
 
-def _construct_values_tuple(values):
-    return tuple([json.dumps(f) if isinstance(f, dict) else f for f in
-                  values.values()])
+def _construct_values_tuple_from_filter(filters):
+    return tuple([json.dumps(f.value) if isinstance(f.value, dict)
+                  else f.value for f in filters])
+
+
+def _construct_values_tuple(host):
+    return tuple([json.dumps(f) if isinstance(f, dict) else
+                  f for f in host.values()])
