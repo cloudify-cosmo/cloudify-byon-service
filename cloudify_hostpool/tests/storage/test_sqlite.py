@@ -15,8 +15,8 @@
 
 import tempfile
 import testtools
-import sqlite3
 
+from cloudify_hostpool import exceptions
 from cloudify_hostpool.storage import sqlite
 
 
@@ -65,7 +65,7 @@ class SQLiteTest(testtools.TestCase):
             'alive': False,
             'reserved': False
         }
-        self.assertRaises(sqlite3.OperationalError,
+        self.assertRaises(exceptions.StorageException,
                           self.db.add_host, host)
 
     def test_get_filtered_hosts(self):
