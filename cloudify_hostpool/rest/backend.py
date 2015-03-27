@@ -39,7 +39,6 @@ INDICATOR = 'host-pool-loaded-indicator'
 class RestBackend(object):
 
     def __init__(self, pool, storage=None):
-        self.storage = sqlite.SQLiteStorage(storage)
         # allow only one process to do the initial load
 
         def _create_indicator():
@@ -48,7 +47,10 @@ class RestBackend(object):
             os.close(fd)
 
         with FLock:
+            self.storage = sqlite.SQLiteStorage(storage)
             if not os.path.exists(INDICATOR):
+                if not self.storage.empty:
+                    self.storage.reset()
                 self._load_pool(pool)
                 _create_indicator()
 
