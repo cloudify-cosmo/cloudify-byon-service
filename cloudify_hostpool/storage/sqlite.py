@@ -100,6 +100,18 @@ class SQLiteStorage(Storage):
                 conn.execute('BEGIN EXCLUSIVE')
             yield conn.cursor()
 
+    def reset(self):
+        os.unlink(self._filename)
+        self._create_table()
+
+    @property
+    @blocking
+    def num_hosts(self):
+        with self.connect() as cursor:
+            cursor.execute('SELECT COUNT(*) FROM {0}'.format(self.TABLE_NAME))
+            result = cursor.fetchone()
+            return result[result.keys()[0]]
+
     @blocking
     def get_hosts(self, **filters):
         with self.connect() as cursor:
