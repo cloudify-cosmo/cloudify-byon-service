@@ -27,6 +27,37 @@ class Storage(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
+    def reset(self):
+
+        """
+        Resets (clears) the database.
+        """
+
+    @property
+    def empty(self):
+
+        """
+        Checks whether the database is empty.
+
+        :return if the database is empty
+        :rtype bool
+
+        """
+
+        return self.num_hosts == 0
+
+    @abc.abstractproperty
+    def num_hosts(self):
+
+        """
+        Retrieves number of hosts in the database.
+
+        :return number of hosts
+        :rtype int
+
+        """
+
+    @abc.abstractmethod
     def get_hosts(self, **filters):
 
         """
