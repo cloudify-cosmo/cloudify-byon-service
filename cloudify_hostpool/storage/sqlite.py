@@ -110,6 +110,7 @@ class SQLiteStorage(Storage):
                                values)
             return list(cursor.fetchall())
 
+    @blocking
     def add_host(self, host):
         with self.connect() as cursor:
             column_names = host.keys()
