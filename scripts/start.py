@@ -41,8 +41,9 @@ def download_service(logger):
     init_data = pkgutil.get_data('cloudify_hostpool',
                                  'resources/service_init.sh')
     if not init_data:
-        NonRecoverableError('Could not download Host-Pool service init script '
-                            'from cloudify_hostpool:resources/service_init.sh')
+        raise NonRecoverableError('Could not download Host-Pool service '
+                                  'init script from cloudify_hostpool:'
+                                  'resources/service_init.sh')
 
     # Pre-process the script (replace defaults)
     logger.debug('Replacing default values in init script')
@@ -77,7 +78,7 @@ def set_service_permissions(svc, logger):
     err = proc.communicate()
     if proc.returncode:
         logger.error('Error setting owner of "%s": %s', svc, err)
-        NonRecoverableError('Exception: %s' % err)
+        raise NonRecoverableError('Exception: %s' % err)
 
 
 def install_service(svc, logger):
@@ -88,7 +89,7 @@ def install_service(svc, logger):
     logger.debug('Operation returned code "%s"', proc.returncode)
     if proc.returncode:
         logger.error('Error moving init script to /etc/init.d/')
-        NonRecoverableError('Exception: %s' % err)
+        raise NonRecoverableError('Exception: %s' % err)
 
 
 def start_service(logger):
@@ -116,7 +117,8 @@ def set_service_on_boot(logger):
                      stderr=PIPE)
     # Unknown
     else:
-        NonRecoverableError('Neither chkconfig or update-rc.d was found')
+        raise NonRecoverableError(
+            'Neither chkconfig or update-rc.d was found')
 
     if proc:
         err = proc.communicate()
@@ -153,7 +155,8 @@ def main():
 
     # Make sure VIRTUALENV is set
     if not VIRT_DIR:
-        NonRecoverableError('VIRTUALENV environment variable must be set!')
+        raise NonRecoverableError(
+            'VIRTUALENV environment variable must be set!')
 
     # Grab the init script from the package
     svc_tmp = download_service(logger)

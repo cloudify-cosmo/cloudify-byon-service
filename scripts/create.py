@@ -25,7 +25,7 @@ def install_requirements():
         err = proc.communicate()
         if proc.returncode:
             ctx.logger.error('Installing Python package "%s" failed', req)
-            RecoverableError(message=err, retry_after=2)
+            raise RecoverableError(message=err, retry_after=2)
 
 
 def main():
@@ -36,7 +36,7 @@ def main():
             os.makedirs(BASE_DIR)
     except OSError as ex:
         ctx.logger.error('Error making directory "%s"', BASE_DIR)
-        RecoverableError(message=ex, retry_after=2)
+        raise RecoverableError(message=ex, retry_after=2)
 
     ctx.logger.info('Installing required Python packages')
     install_requirements()

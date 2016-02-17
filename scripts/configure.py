@@ -71,8 +71,8 @@ def main():
                                  debug=ctx.node.properties.get('debug'))
 
     if not ctx.node.properties.get('pool'):
-        NonRecoverableError('Configuration file for the Host-Pool '
-                            'service was not specified')
+        raise NonRecoverableError('Configuration file for the Host-Pool '
+                                  'service was not specified')
 
     logger.debug('Downloading host-pool configuration file "%s" to "%s"',
                  ctx.node.properties.get('pool'), POOL_CFG_PATH)
@@ -80,8 +80,8 @@ def main():
                           target_path=POOL_CFG_PATH)
 
     if not os.path.exists(POOL_CFG_PATH):
-        NonRecoverableError('Configuration file for the Host-Pool '
-                            'service could not be downloaded')
+        raise NonRecoverableError('Configuration file for the Host-Pool '
+                                  'service could not be downloaded')
 
     # Load our configuration data
     with open(POOL_CFG_PATH) as f_cfg:
@@ -94,8 +94,8 @@ def main():
             create_config_file(logger)
         except yaml.YAMLError as ex:
             logger.error('Exception: %s', ex)
-            NonRecoverableError('Configuration file for the Host-Pool '
-                                'service is not valid YAML')
+            raise NonRecoverableError('Configuration file for the Host-Pool '
+                                      'service is not valid YAML')
 
     logger.info('Setting runtime_property "config_path" to "%s"',
                 CONFIG_PATH)
