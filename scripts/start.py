@@ -25,7 +25,10 @@ from string import Template
 import tempfile
 from subprocess import Popen, PIPE, call
 import requests
+<<<<<<< HEAD
 
+=======
+>>>>>>> 70e68ebc585e46ddf70e3b7097b9c2fbe11757a3
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError, RecoverableError
 from cloudify_hostpool.logger import get_hostpool_logger
@@ -62,9 +65,13 @@ def download_service(logger):
                                   'init script from cloudify_hostpool:'
                                   'resources/service_init.sh')
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 >>>>>>> febd290... Added logger test. Fixed exception handling
+=======
+
+>>>>>>> 70e68ebc585e46ddf70e3b7097b9c2fbe11757a3
     # Pre-process the script (replace defaults)
     logger.debug('Replacing default values in init script')
     tmpl = Template(init_data)
@@ -100,6 +107,7 @@ def set_service_permissions(svc, logger):
     if proc.returncode:
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
         raise NonRecoverableError('Error setting owner of "{0}": {1}'
                                   .format(svc, err))
 =======
@@ -110,6 +118,10 @@ def set_service_permissions(svc, logger):
         raise NonRecoverableError('Error setting owner of "{0}": {1}'
                                   .format(svc, err))
 >>>>>>> 7f0e73f... Fixing styling & exception handling
+=======
+        raise NonRecoverableError('Error setting owner of "{0}": {1}'
+                                  .format(svc, err))
+>>>>>>> 70e68ebc585e46ddf70e3b7097b9c2fbe11757a3
 
 
 def install_service(svc, logger):
@@ -119,6 +131,7 @@ def install_service(svc, logger):
     err = proc.communicate()
     logger.debug('Operation returned code "{0}"'.format(proc.returncode))
     if proc.returncode:
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
         raise NonRecoverableError('Error moving init script to '
@@ -131,6 +144,10 @@ def install_service(svc, logger):
         raise NonRecoverableError('Error moving init script to '
                                   '/etc/init.d/: {0}'.format(err))
 >>>>>>> 7f0e73f... Fixing styling & exception handling
+=======
+        raise NonRecoverableError('Error moving init script to '
+                                  '/etc/init.d/: {0}'.format(err))
+>>>>>>> 70e68ebc585e46ddf70e3b7097b9c2fbe11757a3
 
 
 def start_service(logger):
@@ -192,9 +209,13 @@ def test_service_liveness(logger):
             logger.error('Bad HTTP status returned: {0}'
                          .format(req.status_code))
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 >>>>>>> 7f0e73f... Fixing styling & exception handling
+=======
+
+>>>>>>> 70e68ebc585e46ddf70e3b7097b9c2fbe11757a3
         logger.warn('Waiting 2 seconds before retrying')
         sleep(2)
 
