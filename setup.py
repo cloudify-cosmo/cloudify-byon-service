@@ -1,4 +1,4 @@
-'''Cloudify Host-Pool Service package config'''
+########
 # Copyright (c) 2015 GigaSpaces Technologies Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,17 +20,17 @@ setup(
     version='1.0',
     license='LICENSE',
     packages=['cloudify_hostpool',
+              'cloudify_hostpool.tests',
               'cloudify_hostpool.storage',
-              'cloudify_hostpool.config',
-              'cloudify_hostpool.hosts',
               'cloudify_hostpool.rest'],
-    package_data={'cloudify_hostpool': ['resources/service_init.sh']},
     description='Cloudify Host Pool Service',
     install_requires=[
         'flask',
         'flask_restful',
         'PyYAML',
+        'netaddr',
         'requests==2.7.0',
-        'filelock==0.2.0'
+        'filelock==0.2.0',
+        'tinydb'
     ]
 )
