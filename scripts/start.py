@@ -12,6 +12,7 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
+
 '''
     lifecycle.Start
     ~~~~~~~~~~~~~~~
@@ -31,7 +32,7 @@ from cloudify.exceptions import NonRecoverableError, RecoverableError
 from cloudify_hostpool.logger import get_hostpool_logger
 
 BASE_DIR = ctx.instance.runtime_properties.get('working_directory')
-VIRT_DIR = os.environ.get('VIRTUALENV') or os.environ.get('VIRTUAL_ENV')
+VIRT_DIR = os.environ.get('VIRTUALENV')
 SVC_DEBUG = ctx.node.properties.get('gunicorn_debug')
 CONFIG_PATH = ctx.instance.runtime_properties.get('config_path')
 HOST = ctx.instance.host_ip
