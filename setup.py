@@ -12,6 +12,7 @@
 #    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
+'''Cloudify Host-Pool Service package config'''
 
 from setuptools import setup
 
@@ -23,6 +24,7 @@ setup(
               'cloudify_hostpool.tests',
               'cloudify_hostpool.storage',
               'cloudify_hostpool.rest'],
+    package_data={'cloudify_hostpool': ['resources/service_init.sh']},
     description='Cloudify Host Pool Service',
     install_requires=[
         'flask',
