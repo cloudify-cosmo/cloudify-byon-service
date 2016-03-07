@@ -6,6 +6,7 @@ node_types:
       pool:
         type: string
         description: Path to the service configuration file (YAML)
+        default: ~
       port:
         type: integer
         description: Port to run the service on
@@ -21,31 +22,39 @@ node_types:
       source:
         type: string
         description: URL to the source code of the service
-        default: https://github.com/cloudify-cosmo/cloudify-host-pool-service/archive/master.zip
+        default: https://github.com/01000101/cloudify-host-pool-service/archive/CFY-4959.zip
+      working_directory:
+        type: string
+        description: Working directory for the service workflows
+        default: ~
+      run_as_daemon:
+        type: boolean
+        description: Set to true to enable the service to run as a SysV daemon
+        default: true
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
           implementation: script.script_runner.tasks.run
           inputs:
             script_path:
-              default: https://raw.githubusercontent.com/cloudify-cosmo/cloudify-host-pool-service/master/scripts/create.py
+              default: https://raw.githubusercontent.com/01000101/cloudify-host-pool-service/CFY-4959/scripts/create.py
         configure:
           implementation: script.script_runner.tasks.run
           inputs:
             script_path:
-              default: https://raw.githubusercontent.com/cloudify-cosmo/cloudify-host-pool-service/master/scripts/configure.py
+              default: https://raw.githubusercontent.com/01000101/cloudify-host-pool-service/CFY-4959/scripts/configure.py
         start:
           implementation: script.script_runner.tasks.run
           inputs:
             script_path:
-              default: https://raw.githubusercontent.com/cloudify-cosmo/cloudify-host-pool-service/master/scripts/start.py
+              default: https://raw.githubusercontent.com/01000101/cloudify-host-pool-service/CFY-4959/scripts/start.py
         stop:
           implementation: script.script_runner.tasks.run
           inputs:
             script_path:
-              default: https://raw.githubusercontent.com/cloudify-cosmo/cloudify-host-pool-service/master/scripts/stop.py
+              default: https://raw.githubusercontent.com/01000101/cloudify-host-pool-service/CFY-4959/scripts/stop.py
         delete:
           implementation: script.script_runner.tasks.run
           inputs:
             script_path:
-              default: https://raw.githubusercontent.com/cloudify-cosmo/cloudify-host-pool-service/master/scripts/delete.py
+              default: https://raw.githubusercontent.com/01000101/cloudify-host-pool-service/CFY-4959/scripts/delete.py
