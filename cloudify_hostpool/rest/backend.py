@@ -53,10 +53,12 @@ class HostAlchemist(object):
         hosts = []
         defaults = self.get_config_defaults()
         # Fix defaults
-        if defaults.get('platform'):
-            del defaults['platform']
-        if defaults.get('endpoint', dict()).get('ip'):
-            del defaults['endpoint']['ip']
+        if isinstance(defaults, dict):
+            if defaults.get('platform'):
+                del defaults['platform']
+            if isinstance(defaults.get('endpoint'), dict) and \
+               defaults.get('endpoint').get('ip'):
+                del defaults['endpoint']['ip']
         # Validate the defaults
         self.validate_defaults(defaults)
         # Build an extended list of hosts
@@ -111,14 +113,14 @@ class HostAlchemist(object):
            not isinstance(defaults.get('endpoint'), dict):
             raise exceptions.ConfigurationError(
                 'Default "endpoint" must be a valid JSON Object')
-        if defaults.get('endpoint') and \
-           defaults['endpoint'].get('ip'):
-            raise exceptions.ConfigurationError(
-                'Default "endpoint.ip" is not allowed')
         if defaults.get('credentials') and \
            not isinstance(defaults.get('credentials'), dict):
             raise exceptions.ConfigurationError(
                 'Default "credentials" must be a valid JSON Object')
+        if defaults.get('endpoint') and \
+           defaults['endpoint'].get('ip'):
+            raise exceptions.ConfigurationError(
+                'Default "endpoint.ip" is not allowed')
 
     @staticmethod
     def validate_host_endpoint(endpoint, check_ip_range=True):
@@ -276,6 +278,7 @@ class RestBackend(object):
 
     def update_host(self, host_id, updates):
         '''Updates a host in the host pool'''
+        self.logger.debug('backend.update_host({0})'.format(host_id))
         if not host_id or not isinstance(host_id, int):
             raise exceptions.HostNotFoundException(host_id)
         if not isinstance(updates, dict):
@@ -288,6 +291,26 @@ class RestBackend(object):
         if not h_id:
             raise exceptions.HostNotFoundException(host_id)
         return h_id
+
+    def host_is_os(self, host, requested_os=None):
+        '''Validates & compares a requested OS to a host OS'''
+        self.logger.debug('backend.host_is_os({0})'.format(requested_os))
+        if not host:
+            self.logger.warn('No host specified')
+            return False
+        if not isinstance(host, dict):
+            self.logger.warn('Host must be a valid JSON object')
+            return False
+        # If no OS was specified, no need to try and match
+        if not requested_os:
+            return True
+        if not isinstance(requested_os, basestring):
+            self.logger.warn('Invalid, non-string requested OS provided')
+            return False
+        # If an OS was specified, see if it matches the hosts' OS
+        if requested_os.lower() == host.get('os', '').lower():
+            return True
+        return False
 
     def acquire_host(self, requested_os=None):
         '''Acquire a host, mark it taken'''
@@ -303,19 +326,9 @@ class RestBackend(object):
             # Refresh our data
             host = self.storage.get_host(host_id)
             # Enforce any user-defined requests
-            if requested_os and requested_os != host['os']:
-                self.logger.debug('Host OS was specified, but no match was '
-                                  'found. "{0}" != "{1}"'.format(
-                                      requested_os, host['os']))
-                # Deallocate the host
-                self.storage.update_host(host_id, {'allocated': False})
-                continue
-            # If the host is alive, this is our host.
-            host_alive = self.host_port_scan(host['endpoint'])
-            self.storage.update_host(host_id, {'alive': host_alive})
-            if host_alive:
+            if self.host_is_os(host, requested_os) and \
+               self.host_port_scan(host['endpoint']):
                 return self.storage.get_host(host_id)
-            # Deallocate the dead host
             self.storage.update_host(host_id, {'allocated': False})
         # We didn't manage to acquire any host
         raise exceptions.NoHostAvailableException()

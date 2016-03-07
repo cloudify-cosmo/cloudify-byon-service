@@ -117,18 +117,6 @@ class Database(Storage):
             tbl = dbc.table(self.tbl_hosts)
             return tbl.all()
 
-    @postprocess_host_id
-    def add_host(self, host):
-        '''Adds a new host entry to the database
-
-        :param dict host: Host object to add to the database
-        :returns: New host ID
-        :rtype: int
-        '''
-        with self.connect() as dbc:
-            tbl = dbc.table(self.tbl_hosts)
-            return tbl.insert(host)
-
     def add_hosts(self, hosts):
         '''Adds multiple host entries to the database
 

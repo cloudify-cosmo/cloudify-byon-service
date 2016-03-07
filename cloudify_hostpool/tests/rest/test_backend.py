@@ -76,6 +76,72 @@ class RestBackendTest(testtools.TestCase):
         self.assertEqual(len(self.backend.list_hosts()),
                          self.NUMBER_OF_HOSTS)
 
+    def test_add_host_invalid(self):
+        '''Test various invalid attempts at adding a host'''
+        # Test with no hosts
+        self.assertRaises(
+            exceptions.HostPoolHTTPException,
+            self.backend.add_hosts, {'default': {'os': 'linux'}})
+        # Test with invalid default type
+        self.assertRaises(
+            exceptions.ConfigurationError,
+            self.backend.add_hosts, {
+                'default': [{'os': 'linux'}],
+                'hosts': [{
+                    'os': 'windows',
+                    'credentials': {
+                        'username': 'foo',
+                        'password': 'bar'
+                    }
+                }]
+            })
+        # Test with invalid endpoint type
+        self.assertRaises(
+            exceptions.ConfigurationError,
+            self.backend.add_hosts, {
+                'default': {'endpoint': 1234},
+                'hosts': [{
+                    'os': 'windows',
+                    'credentials': {
+                        'username': 'foo',
+                        'password': 'bar'
+                    }
+                }]
+            })
+        # Test with invalid default keys present and invalid endpoint
+        self.assertRaises(
+            exceptions.ConfigurationError,
+            self.backend.add_hosts, {
+                'default': {
+                    'os': 'linux',
+                    'platform': {'foo': 'bar'},
+                    'endpoint': {'ip': '123.123.123.123'}
+                },
+                'hosts': [{
+                    'os': 'windows',
+                    'credentials': {
+                        'username': 'foo',
+                        'password': 'bar'
+                    }
+                }]
+            })
+        # Test with unknown OS
+        self.assertRaises(
+            exceptions.ConfigurationError,
+            self.backend.add_hosts, {'hosts': [{'os': 'solaris'}]})
+        # Test without an endpoint
+        self.assertRaises(
+            exceptions.ConfigurationError,
+            self.backend.add_hosts, {
+                'hosts': [{
+                    'os': 'windows',
+                    'credentials': {
+                        'username': 'foo',
+                        'password': 'bar'
+                    }
+                }]
+            })
+
     @mock.patch('cloudify_hostpool.rest.backend.RestBackend.host_port_scan',
                 _mock_scan_alive)
     def test_acquire_host(self):

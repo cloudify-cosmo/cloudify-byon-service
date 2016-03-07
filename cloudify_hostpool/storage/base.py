@@ -83,15 +83,6 @@ class Storage(object):
         '''
 
     @abc.abstractmethod
-    def add_host(self, host):
-        '''Adds a new host entry to the database
-
-        :param dict host: Host object to add to the database
-        :returns: New host ID
-        :rtype: int
-        '''
-
-    @abc.abstractmethod
     def add_hosts(self, hosts):
         '''Adds multiple host entries to the database
 
