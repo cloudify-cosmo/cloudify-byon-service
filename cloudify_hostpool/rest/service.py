@@ -114,9 +114,12 @@ class HostList(Resource):
                 'os': data.get('os'),
                 'tags': data.get('tags')
             }
+        # Normalize OS string
+        if isinstance(data.get('os'), basestring):
+            data['os'] = data['os'].lower()
         # Convert tags to proper list
         if isinstance(data.get('tags'), basestring):
-            data['tags'] = data['tags'].split(',')
+            data['tags'] = [x.lower() for x in data['tags'].split(',')]
 
         app.logger.debug('GET /hosts, filters="{0}"'.format(data))
         hosts = backend.list_hosts(filters=data)

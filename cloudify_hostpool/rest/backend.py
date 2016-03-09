@@ -209,6 +209,8 @@ class HostAlchemist(object):
         '''Adds default base information to a host'''
         host['name'] = host.get('name') or defaults.get('name')
         host['os'] = host.get('os') or defaults.get('os')
+        host['tags'] = list(set(
+            host.get('tags', list()) + defaults.get('tags', list())))
 
     @staticmethod
     def impose_default_credentials(host, defaults):
