@@ -84,7 +84,7 @@ def handle_json_exception(exc):
     app.logger.debug('headers? {0}'.format(request.headers))
     if not request.data:
         return dict()
-    raise exceptions.HostPoolHTTPException(httplib.BAD_REQUEST)
+    raise exceptions.UnexpectedData(request.data)
 
 
 class Host(Resource):

@@ -305,6 +305,9 @@ class ServiceTest(testtools.TestCase):
         result = self.app.post('/host/allocate',
                                data="{'os': 'linux'}")
         self.assertEqual(result.status_code, httplib.BAD_REQUEST)
+        response = json.loads(result.data)
+        self.assertIn('error', response)
+        self.assertIn('Unexpected data', response['error'])
 
     @mock.patch('cloudify_hostpool.rest.backend.RestBackend.host_port_scan',
                 _mock_scan_dead)
