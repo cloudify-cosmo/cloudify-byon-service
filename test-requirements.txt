@@ -1,7 +1,7 @@
 mock>=1.0.1
 subprocess32>=3.2.6
 testtools
-requests==2.7.0
+requests==2.20.0
 flake8
 nose
 nose-cov

@@ -31,7 +31,7 @@ setup(
         'flask_restful',
         'PyYAML==3.10',
         'netaddr',
-        'requests==2.7.0',
+        'requests==2.20.0',
         'filelock==0.2.0',
         'tinydb>=3.15.0,<4.0.0',
         'six'
